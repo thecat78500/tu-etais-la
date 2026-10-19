@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "title": "La porte qu’on n’a pas ouverte",
+    "motif": "la réserve",
+    "intro": "Je suis derrière la porte de la réserve. J’entends encore vos pas, comme s’ils n’avaient jamais cessé. Chaque fois que vous racontez cette nuit de la même façon, le verrou se referme. Retrouvez ce qui s’est réellement passé. Je ne peux pas tourner la clé de ce côté.",
+    "image": "assets/affaire-01-reserve.png"
+  },
+  {
+    "id": 2,
+    "title": "Celle qui avait prévu de disparaître",
+    "motif": "la valise",
+    "intro": "J’avais préparé ma valise. Je me souviens de chaque vêtement. Pourtant, je n’arrive jamais à quitter cette chambre. Chaque porte me ramène au lit, à l’enveloppe, au manteau. Quelque chose est parti à ma place. Retrouvez ce qui me retient ici.",
+    "image": "assets/affaire-02-depart.png"
+  },
+  {
+    "id": 3,
+    "title": "Le téléphone de trop",
+    "motif": "le téléphone fissuré",
+    "intro": "Si mon téléphone vous écrit pendant que vous écoutez ceci, ne lui répondez pas tout de suite. Je suis dans l’escalier. Je ne tiens plus ce téléphone. Quelque chose a appris à terminer mes phrases. Il lui manque encore ce que vous savez de moi.",
+    "image": "assets/affaire-03-escalier.png"
+  },
+  {
+    "id": 4,
+    "title": "Vous avez tous la même mémoire",
+    "motif": "la lampe du salon",
+    "intro": "Vous vous souvenez tous de cette soirée. C’est cela qui m’inquiète. Les mêmes phrases. Les mêmes silences. Même ce que vous n’auriez pas pu voir. Quelque chose vous a laissé un souvenir à ma place. Regardez le salon avant de lui donner raison.",
+    "image": "assets/affaire-04-lampe.png"
+  },
+  {
+    "id": 5,
+    "title": "Le pacte ne parlait pas de Sally",
+    "motif": "la montre cachée",
+    "intro": "Vous avez retrouvé vos signatures. Je sais ce que vous pensez. Mais ce papier existait avant ma disparition. La maison a posé mon nom sur une promesse qui ne me concernait pas. Retrouvez ce que vous aviez engagé. Il reste peut-être un moyen de le reprendre.",
+    "image": "assets/affaire-05-montre.png"
+  },
+  {
+    "id": 6,
+    "title": "Quelqu’un joue Sally",
+    "motif": "la photographie du jardin",
+    "intro": "Si une autre voix t’a dit qu’elle était Sally, garde son message. Ne le détruis pas. Je ne peux pas vous demander de reconnaître mon visage ou ma voix. Elle les connaît aussi. Il faudra retrouver ce qu’elle a pris… et d’où cela vient.",
+    "image": "assets/affaire-06-photo-reutilisee.png"
+  },
+  {
+    "id": 7,
+    "title": "Les douze minutes manquantes",
+    "motif": "la chaise dans le jardin",
+    "intro": "Je vis encore les mêmes minutes. La chaise bascule. Quelqu’un tend la main. Puis tout recommence avant que je puisse passer la porte. Vos appareils n’ont pas gardé la même heure. Retrouvez l’événement qui les relie. C’est là que vous pourrez me retrouver.",
+    "image": "assets/affaire-07-vue-camera.png"
+  },
+  {
+    "id": 8,
+    "title": "La clé n’ouvrait pas cette porte",
+    "motif": "le secrétaire fermé",
+    "intro": "Je suis encore dans la maison. La clé est dehors, mais ce n’est pas la porte que vous croyez qu’elle doit ouvrir. Quelqu’un a posé les choses de façon que vous regardiez au mauvais endroit. Retrouvez ce que le meuble garde pour vous. Mon souvenir commence là.",
+    "image": "assets/affaire-08-secretaire.png"
+  },
+  {
+    "id": 9,
+    "title": "Personne ne devait être absent",
+    "motif": "les invitations échangées",
+    "intro": "Je n’ai pas reçu la même invitation que vous. Je l’ai compris trop tard. Dans cette maison, donner un nom à une place peut suffire à faire entrer quelque chose. Retrouvez les messages d’origine. Ne laissez pas la présence choisir qui était attendu.",
+    "image": "assets/affaire-09-invitations.png"
+  },
+  {
+    "id": 10,
+    "title": "Le dossier que vous avez fabriqué",
+    "motif": "la photographie complète",
+    "intro": "Le dossier paraît complet. C’est peut-être ce qui doit vous inquiéter. Une image coupée. Une phrase sans sa suite. Un geste auquel on donne un sens. La maison a fabriqué une histoire avec tout cela. Retrouvez ce qu’elle a retiré. Je suis restée dans les morceaux manquants.",
+    "image": "assets/affaire-10-photo-complete.png"
+  }
+]
