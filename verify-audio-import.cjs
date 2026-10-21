@@ -1,0 +1,27 @@
+const {chromium}=require('C:/Users/DavidDaCosta/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Users/DavidDaCosta/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe'});try{
+ const page=await browser.newPage({viewport:{width:1194,height:834},reducedMotion:'reduce'}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:8765/studio-voix.html');await page.locator('.voice-script').first().waitFor();
+ const first=page.locator('[data-clip="A01_SALLY_00_introduction"]');
+ await first.locator('input').setInputFiles({name:'incorrect.mp3',mimeType:'audio/mpeg',buffer:Buffer.from('Not audio')});
+ await page.getByText('Ce fichier ne peut pas être décodé par ce navigateur.',{exact:true}).waitFor();
+ if(await page.locator('.recording-badge.ready').count())throw Error('Corrupted file accepted');
+ const fixture=path.join(__dirname,'assets/audio/sally-introduction.mp3');
+ await first.locator('input').setInputFiles(fixture);await first.locator('.ready').waitFor();
+ await page.reload();await first.locator('.ready').waitFor();
+ await first.locator('audio').evaluate(audio=>{audio.preload='metadata';audio.load()});await page.waitForFunction(()=>{const audio=document.querySelector('.voice-script audio');return audio&&audio.duration>0});
+ if(!(await page.locator('#studio-progress').innerText()).startsWith('1 / 107'))throw Error('Progress failed');
+ await page.locator('#studio-version').selectOption('phone');if(await page.locator('.ready').count())throw Error('Versions mixed');
+ await first.locator('input').setInputFiles(fixture);await first.locator('.ready').waitFor();
+ await page.locator('#studio-version').selectOption('clean');await first.locator('.ready').waitFor();
+ await page.locator('#studio-bulk').setInputFiles([{name:'A01_SALLY_01_enigme.mp3',mimeType:'audio/mpeg',buffer:fs.readFileSync(fixture)},{name:'nom-inconnu.mp3',mimeType:'audio/mpeg',buffer:fs.readFileSync(fixture)}]);
+ await page.waitForFunction(()=>document.querySelector('#studio-status').textContent.includes('Noms non reconnus'));
+ if(await page.locator('.ready').count()!==2)throw Error('Bulk association failed');
+ await page.locator('#studio-completion').selectOption('ready');if(await page.locator('.voice-script').count()!==2)throw Error('Ready filter failed');
+ const downloadPromise=page.waitForEvent('download');await first.locator('.audio-download').click();const download=await downloadPromise;if(download.suggestedFilename()!=='A01_SALLY_00_introduction.mp3')throw Error('Download name failed');
+ await page.setViewportSize({width:820,height:1180});if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('iPad overflow');
+ await page.screenshot({path:path.join(__dirname,'apercu-studio-import-audio.png'),fullPage:true});
+ await page.setViewportSize({width:390,height:844});if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Phone overflow');
+ if(errors.length)throw Error(errors.join('\n'));console.log('PASS: rejet fichier corrompu, import MP3, durée lisible, persistance, versions séparées, import groupé, noms inconnus, filtre, téléchargement, iPad et mobile.');
+ }finally{await browser.close()}})().catch(error=>{console.error(error);process.exitCode=1});

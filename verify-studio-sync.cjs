@@ -1,0 +1,14 @@
+const {chromium}=require('C:/Users/DavidDaCosta/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Users/DavidDaCosta/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe'});try{
+ const page=await browser.newPage({viewport:{width:820,height:1180}});let remote=[],puts=0,fail=false;const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('https://media.example/**',async route=>{const req=route.request();if(!new URL(req.url()).pathname.startsWith('/jeu-medias/media'))throw Error('Proxy prefix lost');if(req.headers().authorization!=='Bearer test-secret')throw Error('Authentication missing');if(fail)return route.fulfill({status:500,body:'{}'});if(req.method()==='PUT'){puts++;const crypto=require('node:crypto');remote=[{id:'A01_SALLY_00_introduction',version:'clean',sha256:crypto.createHash('sha256').update(req.postDataBuffer()).digest('hex')}];return route.fulfill({json:{stored:true}})}return route.fulfill({json:{media:remote}})});
+ await page.goto('http://127.0.0.1:8765/studio-voix.html');await page.locator('.voice-script').first().waitFor();
+ await page.evaluate(async bytes=>{await gameAudio.put({key:'A01_SALLY_00_introduction::clean',clipId:'A01_SALLY_00_introduction',version:'clean',extension:'mp3',blob:new Blob([new Uint8Array(bytes)],{type:'audio/mpeg'}),originalName:'test.mp3',duration:20,updatedAt:Date.now()})},[...fs.readFileSync(__dirname+'/assets/audio/sally-introduction.mp3')]);
+ await page.locator('#media-server').fill('https://media.example/jeu-medias');await page.locator('#media-token').fill('test-secret');await page.locator('#server-send').click();await page.getByText(/1 fichier\(s\) enregistré\(s\) sur le serveur, 0/).waitFor();
+ await page.locator('#server-send').click();await page.getByText(/0 fichier\(s\) enregistré\(s\) sur le serveur, 1/).waitFor();if(puts!==1)throw Error('Duplicate upload');
+ fail=true;await page.locator('#server-check').click();await page.getByText(/erreur 500/).waitFor();if(await page.evaluate(async()=>(await gameAudio.all()).length)!==1)throw Error('Local copy lost');
+ await page.reload();if(await page.locator('#media-token').inputValue())throw Error('Token persisted');if(await page.locator('#media-server').inputValue()!=='https://media.example/jeu-medias')throw Error('URL lost');
+ for(const width of [820,390]){await page.setViewportSize({width,height:1180});if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Overflow')}
+ if(errors.length)throw Error(errors.join('\n'));console.log('PASS: authenticated upload, deduplication, failure retains copy, token not persisted, tablet/mobile.');
+}finally{await browser.close()}})().catch(error=>{console.error(error);process.exitCode=1});
