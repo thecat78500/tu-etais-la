@@ -52,7 +52,11 @@
   $('admin-stop').disabled=!pret||!partie;$('refresh').disabled=adminBusy;
   $('admin-refresh').disabled=adminBusy;
   $('admin-invitation').hidden=!partie;
+  const accueil=partie?.statut==='accueil'&&adminCertain;
+  $('invitation-qr-card').hidden=!accueil;
+  if(!accueil){$('invitation-qr').replaceChildren();delete $('invitation-qr').dataset.url;$('invitation-qr-large').replaceChildren();if($('invitation-qr-dialog').open)$('invitation-qr-dialog').close()}
   if(partie){const lien='https://t.me/tu_etais_la_maison_bot?start='+partie.code;$('admin-invite-url').value=lien;$('admin-open-invite').href=lien;
+   if(accueil){$('invitation-qr-code').textContent=partie.code;try{window.InvitationQR.render($('invitation-qr'),lien);$('invitation-qr-error').textContent='';$('invitation-qr-open').disabled=false}catch{$('invitation-qr-error').textContent='QR indisponible. Utilisez le lien d’inscription ci-dessus.';$('invitation-qr-open').disabled=true}}
    $('admin-count').value=String(partie.nombre_joueurs);$('admin-scenario').value=String(partie.scenario_id);
    $('admin-start-hint').textContent=partie.statut==='en_cours'?'Partie en cours. Les rôles et indices restent privés dans Telegram.':`${adminData.joueurs.length}/${partie.nombre_joueurs} inscrits. Le lancement sera disponible lorsque toutes les places seront occupées.`;
   }
@@ -90,6 +94,8 @@
  $('admin-copy-invite').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-invite-url').value);$('admin-feedback').textContent='Lien d’inscription copié. Partage-le avec tes invités.'}catch{$('admin-invite-url').select();$('admin-feedback').textContent='Sélectionne et copie le lien d’inscription.'}});
  $('admin-logout').addEventListener('click',()=>quitterAdmin());
  $('admin-refresh').addEventListener('click',()=>commander('etat'));
+ $('invitation-qr-open').addEventListener('click',()=>{const partie=adminData?.partie;if(!partie||partie.statut!=='accueil'||!adminCertain)return;try{window.InvitationQR.render($('invitation-qr-large'),'https://t.me/tu_etais_la_maison_bot?start='+partie.code);$('invitation-qr-large-code').textContent=partie.code;$('invitation-qr-dialog').showModal()}catch{$('invitation-qr-error').textContent='Utilisez le lien d’inscription.'}});
+ $('invitation-qr-close').addEventListener('click',()=>$('invitation-qr-dialog').close());
  $('make-key').addEventListener('click',()=>{const bytes=crypto.getRandomValues(new Uint8Array(32)),cle=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');$('cle').value=cle;$('command').value='/ipad '+cle;$('pair-command').hidden=false;$('pair-feedback').textContent='Envoie la commande au bot depuis le compte organisateur, puis ouvre le lien reçu.'});
  $('copy-command').addEventListener('click',()=>copier($('command').value,'pair-feedback'));
  $('connect-form').addEventListener('submit',e=>{e.preventDefault();connecter($('partie').value.trim().toUpperCase(),$('cle').value.trim())});

@@ -1,0 +1,5 @@
+QR Code Generator by Kazuhiko Arase.
+Source: https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/master/js/dist/qrcode.js
+License: MIT, see qrcode-LICENSE.txt.
+Vendored locally; no remote requests during QR generation.
+SHA256: 79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c
