@@ -7,19 +7,29 @@
  let association=null,affaires=[],timer=null,controller=null,generation=0,loading=false;
  let adminKey='',adminData=null,adminBusy=false,adminCertain=false,adminTimer=null,adminController=null,adminCycle=0;
  let partieTerminee=false;
+ let vueCourante='table',retours=[];
  const el=(tag,texte,classe)=>{const node=document.createElement(tag);if(texte!==undefined)node.textContent=texte;if(classe)node.className=classe;return node};
  function etat(texte,classe=''){$('connection-state').textContent=texte;$('signal').className=classe}
  function memoriser(){try{if(association)sessionStorage.setItem(storageKey,JSON.stringify(association));else sessionStorage.removeItem(storageKey)}catch{}}
  function memoriserAcces(){try{if($('admin-remember').checked&&adminKey)localStorage.setItem(adminStorageKey,JSON.stringify({version:1,cle:adminKey}));else localStorage.removeItem(adminStorageKey)}catch{$('admin-feedback').textContent='Cet appareil ne permet pas de mémoriser l’accès. La connexion reste ouverte dans cet onglet.'}}
+ function naviguer(vue,ajouter=true){
+  if(ajouter&&vue!==vueCourante){retours.push(vueCourante);history.pushState({jeuVue:vue},'',location.pathname+location.search+'#vue='+vue)}
+  vueCourante=vue;document.body.dataset.page=vue;
+  $('settings-view').hidden=vue!=='reglages';$('scenarios-view').hidden=vue!=='scenarios';$('main-view').hidden=vue!=='table';
+  $('back-navigation').hidden=retours.length===0&&vue==='table';
+  $('return-table').hidden=vue==='table';
+  if(vue==='scenarios'){$('catalogue').hidden=false;$('catalogue').open=true}
+  window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+ }
  function arreter(){generation++;clearTimeout(timer);controller?.abort();controller=null;loading=false;$('refresh').disabled=false}
  function deconnecter(message='Écran déconnecté'){arreter();association=null;memoriser();document.body.classList.remove('is-connected');$('table').hidden=true;$('association').open=false;$('catalogue').hidden=false;$('cle').value='';$('command').value='';$('pair-command').hidden=true;etat(message)}
  async function copier(texte,retour){try{await navigator.clipboard.writeText(texte);$(retour).textContent='Commande copiée. Envoie-la au bot dans Telegram.'}catch{$(retour).textContent='Copie manuellement cette commande : '+texte}}
- function catalogue(){const root=$('affaires');root.replaceChildren();$('admin-scenario').replaceChildren(...affaires.map(a=>{const option=el('option',`${String(a.id).padStart(2,'0')} — ${a.title}`);option.value=String(a.id);return option}));for(const a of affaires){const card=el('article',undefined,'affaire'),image=el('img');image.src=a.image;image.alt=a.motif;image.loading='lazy';image.width=1448;image.height=1086;const contenu=el('div');contenu.append(el('span','AFFAIRE '+String(a.id).padStart(2,'0'),'eyebrow'),el('h3',a.title),el('p',a.motif));const bouton=el('button','Choisir cette affaire ↗');bouton.type='button';bouton.addEventListener('click',()=>{$('admin-scenario').value=String(a.id);if(adminKey){$('admin-controls').scrollIntoView({behavior:'smooth',block:'start'});$('admin-feedback').textContent='Affaire sélectionnée. Choisis le nombre de joueurs puis crée la partie.'}else{$('admin-access').open=true;$('admin-access').scrollIntoView({behavior:'smooth',block:'start'});$('admin-key').focus();$('admin-login-feedback').textContent='Affaire sélectionnée. Connecte-toi pour créer la partie depuis cet écran.'}});contenu.append(bouton);card.append(image,contenu);root.append(card)}}
+ function catalogue(){const root=$('affaires');root.replaceChildren();$('admin-scenario').replaceChildren(...affaires.map(a=>{const option=el('option',`${String(a.id).padStart(2,'0')} — ${a.title}`);option.value=String(a.id);return option}));for(const a of affaires){const card=el('article',undefined,'affaire'),image=el('img');image.src=a.image;image.alt=a.motif;image.loading='lazy';image.width=1448;image.height=1086;const contenu=el('div');contenu.append(el('span','AFFAIRE '+String(a.id).padStart(2,'0'),'eyebrow'),el('h3',a.title),el('p',a.motif));const bouton=el('button','Choisir cette affaire ↗');bouton.type='button';bouton.addEventListener('click',()=>{$('admin-scenario').value=String(a.id);naviguer('table');if(adminKey){$('admin-controls').scrollIntoView({behavior:'smooth',block:'start'});$('admin-feedback').textContent='Affaire sélectionnée. Choisis le nombre de joueurs puis crée la partie.'}else{$('admin-access').open=true;$('admin-access').scrollIntoView({behavior:'smooth',block:'start'});$('admin-key').focus();$('admin-login-feedback').textContent='Affaire sélectionnée. Connecte-toi pour créer la partie depuis cet écran.'}});contenu.append(bouton);card.append(image,contenu);root.append(card)}}
  function afficher(data){
   if(!data?.ok||!data.partie||!Array.isArray(data.joueurs)||!data.progression||!Array.isArray(data.progression.carnet))throw Error('Réponse inattendue du serveur.');
   if(data.partie.code!==association.partie)throw Error('Le serveur a renvoyé une autre partie.');
   const a=affaires.find(a=>a.id===data.partie.scenario_id);if(!a)throw Error('Affaire inconnue.');
-  document.body.classList.add('is-connected');$('table').hidden=false;$('association').open=false;$('catalogue').hidden=true;
+  document.body.classList.add('is-connected');$('table').hidden=false;$('association').open=false;$('catalogue').hidden=vueCourante!=='scenarios';
   $('game-code').textContent=`PARTIE ${data.partie.code} / AFFAIRE ${String(a.id).padStart(2,'0')}`;$('game-title').textContent=a.title;
   $('scene-image').src=a.image;$('scene-image').alt=a.motif;$('game-intro').textContent=a.intro;
   $('player-count').textContent=`${data.joueurs.length} / ${data.partie.nombre_joueurs}`;$('roster').replaceChildren(...data.joueurs.map(j=>el('span',j.prenom)));
@@ -76,7 +86,7 @@
   adminCycle++;clearTimeout(adminTimer);adminController?.abort();adminController=null;adminKey='';adminData=null;adminCertain=false;adminBusy=false;
   try{localStorage.removeItem(adminStorageKey)}catch{}$('admin-remember').checked=false;
   $('admin-key').value='';$('admin-credential-value').value='';$('admin-config-value').hidden=true;$('admin-controls').hidden=true;$('admin-access').hidden=false;$('admin-access').open=true;$('association').hidden=false;document.body.classList.remove('has-admin');
-  deconnecter(message);$('admin-login-feedback').textContent=message;$('disconnect').textContent='Déconnecter l’écran';boutonsAdmin();
+  deconnecter(message);$('admin-login-feedback').textContent=message;$('disconnect').textContent='Déconnecter l’écran';boutonsAdmin();retours=[];naviguer('table',false);
  }
  async function commander(action,extra={}){
   if(!adminKey||adminBusy||(action==='etat'&&document.hidden))return;
@@ -86,7 +96,7 @@
   try{
    const response=await fetch(ADMIN_ENDPOINT,{method:'POST',headers:{Authorization:'Bearer '+adminKey},body:new URLSearchParams({action,requete_id:crypto.randomUUID(),...extra}),credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:aborter.signal});
    if(cycle!==adminCycle)return;
-   if(response.status===401||response.status===403){quitterAdmin('Accès refusé. Saisis de nouveau ton code organisateur.');return}
+   if(response.status===401||response.status===403){quitterAdmin('Clé organisateur refusée. Saisis la clé fixe configurée dans n8n.');return}
    if(!response.ok)throw Error(`Le serveur a refusé la demande (${response.status}).`);
    const data=await response.json();if(cycle!==adminCycle)return;
    if(!data?.ok||!Object.hasOwn(data,'partie')||!Array.isArray(data.joueurs)||!data.progression)throw Error(data.message||'Réponse du serveur inattendue.');
@@ -100,7 +110,13 @@
   }finally{clearTimeout(timeout);if(cycle===adminCycle){adminBusy=false;adminController=null;boutonsAdmin();if(adminKey&&!document.hidden)adminTimer=setTimeout(()=>commander('etat'),15000)}}
  }
  $('admin-login').addEventListener('submit',event=>{event.preventDefault();if(!affaires.length)return;const cle=$('admin-key').value.trim().replace(/^Bearer\s+/i,'');if(!/^[A-Za-z0-9_-]{32,128}$/.test(cle)){$('admin-login-feedback').textContent='Utilise le code organisateur généré lors de la configuration.';return}adminCycle++;clearTimeout(adminTimer);adminController?.abort();adminBusy=false;arreter();association=null;memoriser();adminKey=cle;adminCertain=false;etat('Connexion organisateur…');commander('etat')});
- $('admin-generate').addEventListener('click',()=>{const cle=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');$('admin-key').value=cle;$('admin-credential-value').value='Bearer '+cle;$('admin-config-value').hidden=false;$('admin-login-feedback').textContent='Enregistre la valeur dans le credential n8n avant de te connecter.'});
+ $('admin-generate').addEventListener('click',()=>{const cle=$('admin-key').value.trim().replace(/^Bearer\s+/i,'');if(!/^[A-Za-z0-9_-]{32,128}$/.test(cle)){$('admin-login-feedback').textContent='Renseigne ta clé fixe (32 caractères minimum) dans le champ de connexion.';naviguer('table');$('admin-key').focus();return}$('admin-credential-value').value='Bearer '+cle;$('admin-config-value').hidden=false});
+ $('open-settings').addEventListener('click',()=>naviguer('reglages'));
+ $('open-scenarios').addEventListener('click',()=>naviguer('scenarios'));
+ $('back-navigation').addEventListener('click',()=>{if(retours.length)history.back();else{naviguer('table',false);history.replaceState({jeuVue:'table'},'',location.pathname+location.search)}});
+ $('return-table').addEventListener('click',()=>{retours=[];naviguer('table',false);history.replaceState({jeuVue:'table'},'',location.pathname+location.search)});
+ document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();retours=[];naviguer('table',false);history.replaceState({jeuVue:'table'},'',location.pathname+location.search)});
+ window.addEventListener('popstate',event=>{if(retours.length)retours.pop();naviguer(event.state?.jeuVue||'table',false)});
  $('admin-copy-config').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-credential-value').value);$('admin-login-feedback').textContent='Valeur copiée pour le credential n8n.'}catch{$('admin-credential-value').select();$('admin-login-feedback').textContent='Sélectionne et copie la valeur affichée.'}});
  $('admin-create').addEventListener('submit',e=>{e.preventDefault();if(!adminData?.partie)commander('creer',{nombre_joueurs:$('admin-count').value,scenario_id:$('admin-scenario').value})});
  $('admin-start').addEventListener('click',()=>{if(adminData?.partie)commander('demarrer',{partie:adminData.partie.code})});
@@ -118,6 +134,8 @@
  function lireFragment(){const fragment=new URLSearchParams(location.hash.slice(1)),partie=fragment.get('partie'),cle=fragment.get('cle');if(partie&&cle){history.replaceState(null,'',location.pathname+location.search);connecter(partie.trim().toUpperCase(),cle);return true}return false}
  window.addEventListener('hashchange',()=>{if(affaires.length)lireFragment()});
  async function initialiser(){try{const reponse=await fetch('catalogue-affaires.json',{cache:'no-cache'});if(!reponse.ok)throw Error();affaires=await reponse.json();catalogue()}catch{$('catalogue-feedback').textContent='La liste des affaires ne peut pas être chargée. Vérifie la publication des fichiers du site.';return}
+  const vueDemandee=new URLSearchParams(location.hash.slice(1)).get('vue');if(['table','scenarios','reglages'].includes(vueDemandee))naviguer(vueDemandee,false);
+  history.replaceState({jeuVue:vueCourante},'');
   if(lireFragment())return;
   try{const enregistre=JSON.parse(localStorage.getItem(adminStorageKey)||'null');if(enregistre?.version===1&&typeof enregistre.cle==='string'&&/^[A-Za-z0-9_-]{32,128}$/.test(enregistre.cle)){$('admin-remember').checked=true;$('admin-key').value=enregistre.cle;adminKey=enregistre.cle;etat('Reprise de votre table…');commander('etat');return}}catch{}
   try{const ancien=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(ancien)connecter(ancien.partie,ancien.cle)}catch{}
