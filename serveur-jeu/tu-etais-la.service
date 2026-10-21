@@ -1,0 +1,22 @@
+[Unit]
+Description=Tu Etais La - memoire des parties
+After=network.target
+
+[Service]
+Type=simple
+User=tuetaisla
+Group=tuetaisla
+WorkingDirectory=/opt/tu-etais-la
+EnvironmentFile=/etc/tu-etais-la.env
+ExecStart=/usr/bin/python3 /opt/tu-etais-la/server.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/tu-etais-la/etat /srv/tu-etais-la/sauvegardes
+
+[Install]
+WantedBy=multi-user.target

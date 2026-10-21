@@ -1,0 +1,79 @@
+{
+  "name": "Tu Etais La - Test vocal Sally",
+  "nodes": [
+    {
+      "parameters": {"updates": ["message"], "additionalFields": {}},
+      "id": "447ed0ec-5e39-4125-9250-66c46400a1b8",
+      "name": "Reception Telegram",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "webhookId": "504397af-d0ab-4aeb-b17e-02c04f070399"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().filter(item => {\n  const message = item.json.message;\n  if (!message || message.chat?.type !== 'private') return false;\n  if (String(message.chat.id) !== '6644853325') return false;\n  const text = String(message.text || '').trim().toLowerCase();\n  return text === 'bonjour sally' || text === '/test_sally';\n});"
+      },
+      "id": "0539f642-d8e6-4bc1-9525-a5590e4051c3",
+      "name": "Autoriser le test de David",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 0]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/srv/tu-etais-la/media/audio/sally-introduction.mp3",
+        "options": {"dataPropertyName": "data", "mimeType": "audio/mpeg"}
+      },
+      "id": "428fcd12-43d2-43cd-811a-041713b4b08e",
+      "name": "Lire la voix de Sally",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botREMPLACER_PAR_VOTRE_JETON/sendVoice",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "chat_id", "value": "={{ $('Reception Telegram').first().json.message.chat.id }}"},
+            {"parameterType": "formBinaryData", "name": "voice", "inputDataFieldName": "data"}
+          ]
+        },
+        "options": {"timeout": 60000}
+      },
+      "id": "aa720cdf-aabc-4826-b34a-cf313dc42ebc",
+      "name": "Envoyer un vrai message vocal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 0]
+    },
+    {
+      "parameters": {
+        "content": "## Configuration avant test\n1. Dans Reception Telegram, choisir les identifiants existants du bot.\n2. Dans Envoyer un vrai message vocal, remplacer REMPLACER_PAR_VOTRE_JETON dans l'URL par le jeton BotFather, sans espace.\n3. Mettre l'ancien workflow de test Telegram hors ecoute : un bot ne dispose que d'un webhook.\n4. Tester puis envoyer Bonjour Sally ou /test_sally au bot.\n\nTest limite a la conversation privee de David (6644853325). Aucun autre joueur ne recoit de reponse.\nL'URL configuree contiendra un secret : ne pas publier l'export ou ses captures.\nLe resultat attendu contient result.voice.file_id. Aucun cache persistant n'est configure dans ce test.",
+        "height": 380,
+        "width": 850
+      },
+      "id": "790bd265-33aa-4a0b-a0b6-c4de4335c6f4",
+      "name": "Guide du test",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, 220]
+    }
+  ],
+  "connections": {
+    "Reception Telegram": {"main": [[{"node": "Autoriser le test de David", "type": "main", "index": 0}]]},
+    "Autoriser le test de David": {"main": [[{"node": "Lire la voix de Sally", "type": "main", "index": 0}]]},
+    "Lire la voix de Sally": {"main": [[{"node": "Envoyer un vrai message vocal", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

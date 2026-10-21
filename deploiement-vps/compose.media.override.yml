@@ -1,0 +1,10 @@
+# Fragment uniquement, à fusionner avec le Compose EXISTANT après vérification.
+# Ne pas lancer seul. Le nom de service "n8n" doit correspondre à l’installation.
+# Conserver les volumes, réseaux, secrets et autres réglages existants.
+services:
+  n8n:
+    volumes:
+      - /srv/tu-etais-la/media:/files/tu-etais-la:ro
+# Selon la version/configuration, ajouter /files/tu-etais-la aux chemins autorisés
+# N8N_RESTRICT_FILE_ACCESS_TO, sans supprimer les chemins actuellement requis.
+# Le futur service média devra monter ce dossier en écriture et authentifier les imports.

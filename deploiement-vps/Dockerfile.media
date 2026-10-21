@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY deploiement-vps/media_server.py /app/media_server.py
+COPY audio-scripts/bibliotheque-v2/catalogue.json /app/catalogue.json
+RUN useradd --uid 10001 --create-home media && mkdir /data && chown media:media /data
+USER 10001:10001
+CMD ["python", "-u", "/app/media_server.py"]

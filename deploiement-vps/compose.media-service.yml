@@ -1,0 +1,20 @@
+# Fusionner avec le Compose existant. Contexte : dossier « Tu Etais La ».
+services:
+  media:
+    build:
+      context: ..
+      dockerfile: deploiement-vps/Dockerfile.media
+    restart: unless-stopped
+    environment:
+      MEDIA_BIND: 0.0.0.0
+      MEDIA_TOKEN: ${MEDIA_TOKEN:?Renseigner une clé aléatoire dédiée}
+      MEDIA_ORIGINS: ${MEDIA_ORIGINS:?Origine HTTPS exacte du site}
+    volumes:
+      - /srv/tu-etais-la/media:/data
+    ports:
+      - "127.0.0.1:8787:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

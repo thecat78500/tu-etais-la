@@ -1,0 +1,117 @@
+{
+  "scenario": "La clé n’ouvrait pas cette porte — version fantastique",
+  "status": "scripts_only_no_audio_generated",
+  "language": "fr-FR",
+  "clips": [
+    {
+      "id": "sally-introduction",
+      "voice": "Sally",
+      "channel": "ipad_public",
+      "role": null,
+      "stage": 1,
+      "trigger": "session_started_after_sound_check",
+      "target_seconds": [35, 45],
+      "direction": "Voix adulte naturelle, proche, retenue. Fatigue et urgence contenue. Pause après la première question et avant la dernière phrase. Ne pas chuchoter au point de perdre les consonnes.",
+      "text": "Vous m’entendez ? C’est Sally. Je ne sais pas combien de temps ce message restera le même. Je suis encore dans la maison. Mais les pièces ne donnent plus aux mêmes endroits. Vous avez chacun gardé un souvenir de cette nuit. Seul, il ne vous servira à rien. Rassemblez-les. Et si une voix vous demande de choisir à ma place… cherchez d’abord ce qu’elle vous cache."
+    },
+    {
+      "id": "presence-introduction",
+      "voice": "La présence",
+      "channel": "ipad_public",
+      "role": null,
+      "stage": 1,
+      "trigger": "after_sally_introduction_and_initial_private_clues",
+      "target_seconds": [25, 35],
+      "direction": "Voix calme, intime, presque accueillante. Débit régulier, sourire discret dans la voix. Aucun rugissement ni effet caricatural. Laisser un silence avant la dernière question.",
+      "text": "Vous avez reconnu sa voix. Comme c’est rassurant. Une voix, c’est parfois tout ce qu’il faut pour vous faire ouvrir une porte. Je ne vous demanderai pas de me croire. Écoutez-vous. Comparez vos souvenirs. Regardez qui choisit de parler… et qui attend de savoir ce que les autres savent. Alors ? Qui commence ?"
+    },
+    {
+      "id": "sally-souvenir-01",
+      "voice": "Sally",
+      "channel": "telegram_private_voice",
+      "role": "Le Médium",
+      "stage": 1,
+      "trigger": "private_call_accepted_during_message_puzzle",
+      "target_seconds": [20, 30],
+      "direction": "Parler à une seule personne, sans prénom variable. Souffle discret, phrases distinctes. Une hésitation avant « tous ».",
+      "text": "Si tu m’entends, garde le début de cette phrase. Quelqu’un d’autre possède la suite. Cette nuit-là, vous avez tous entendu quelque chose… mais vous n’avez pas entendu les mêmes mots. Ne devine pas ce qui manque. Demande-leur. Même la personne dont tu te méfies peut avoir conservé le bon fragment."
+    },
+    {
+      "id": "sally-souvenir-02",
+      "voice": "Sally",
+      "channel": "telegram_private_voice",
+      "role": "Le Gardien",
+      "stage": 3,
+      "trigger": "secretary_and_exterior_key_photographs_available",
+      "target_seconds": [25, 35],
+      "direction": "Voix plus assurée, comme un souvenir précis qui revient. Insister légèrement sur « devant » puis sur « ouvrira » sans surjouer.",
+      "text": "Tu te souviens de la clé devant la porte. Moi aussi. Mais souviens-toi de ce que tu as vu… pas de ce que tu en as conclu. Être devant une porte ne signifie pas qu’on l’ouvrira. Regarde le meuble. Regarde les traces qu’on a laissées sur les objets. Quelqu’un a compté sur votre impatience pour que vous ne fassiez pas la différence."
+    },
+    {
+      "id": "sally-souvenir-03",
+      "voice": "Sally",
+      "channel": "telegram_private_voice",
+      "role": "Le Revenant",
+      "stage": 4,
+      "trigger": "chronology_documents_and_clock_reference_available",
+      "target_seconds": [25, 35],
+      "direction": "Début hésitant, puis précision croissante. Éviter les effets qui masquent les mots. Un bref silence avant « par une heure ».",
+      "text": "Il y a un moment que je revois sans cesse. La lumière change. Quelqu’un se retourne. Puis le bruit d’une chaise. Vous avez raconté cette scène en commençant par une heure. Recommencez par ce qui s’est passé. Retrouvez l’événement que deux personnes peuvent reconnaître. Ensuite seulement, regardez leurs horloges. C’est là que mon souvenir et le vôtre se sont séparés."
+    },
+    {
+      "id": "presence-tentation-01",
+      "voice": "La présence",
+      "channel": "telegram_private_voice",
+      "role": "any_balanced_rotation",
+      "stage": 2,
+      "trigger": "private_offer_accepted_during_symbols_puzzle",
+      "target_seconds": [20, 30],
+      "direction": "Ton complice et patient. La menace vient de la douceur. Ne pas désigner un autre joueur par son prénom dans ce fichier réutilisable.",
+      "text": "Tu n’es pas obligé de tout raconter tout de suite. Laisse-les expliquer les signes. Demande-leur pourquoi ils sont si certains. Un souvenir paraît toujours plus solide lorsqu’on est plusieurs à le répéter. Tu peux les aider… ou attendre de voir qui changera sa version en premier. Je peux attendre avec toi."
+    },
+    {
+      "id": "presence-tentation-02",
+      "voice": "La présence",
+      "channel": "telegram_private_voice",
+      "role": "any_balanced_rotation",
+      "stage": 3,
+      "trigger": "private_memory_offer_accepted_after_object_evidence_opened",
+      "target_seconds": [25, 35],
+      "direction": "Marché murmuré mais intelligible. Aucun filtre de voix métallique. Marquer la question finale.",
+      "text": "Il te manque quelque chose de cette nuit. Je peux te rendre un souvenir. En échange, propose aux autres de consulter le dossier noir. Ne leur explique pas que l’idée vient de moi. Tu ne détruiras rien. Tu ne prendras rien. Tu leur ouvriras seulement une possibilité. Est-ce encore un mensonge, quand on ne dit pas tout ?"
+    },
+    {
+      "id": "presence-tentation-03",
+      "voice": "La présence",
+      "channel": "telegram_private_voice",
+      "role": "any_balanced_rotation",
+      "stage": 5,
+      "trigger": "before_final_vote_after_all_necessary_clues_available",
+      "target_seconds": [20, 30],
+      "direction": "Extrêmement calme. Légère insistance sur « bonnes raisons ». Dernière phrase presque tendre.",
+      "text": "Ils vont te demander ce que tu choisis. Tu peux voter avec eux. Tu peux aussi demander une dernière fois ce qui prouve leur réponse. Écoute les bonnes raisons… et les belles histoires. Moi, je n’ai besoin que d’un choix. Après, chacun pourra prétendre qu’il ne savait pas. Vous avez déjà appris à le faire."
+    },
+    {
+      "id": "rituel-reussite",
+      "voice": "Sally",
+      "channel": "ipad_public",
+      "role": null,
+      "stage": 5,
+      "trigger": "final_vote_resolved_and_passage_closed",
+      "target_seconds": [30, 40],
+      "direction": "Soulagement fragile, sans joie triomphante. Respiration redevenue naturelle. Laisser une pause de deux secondes avant les derniers mots.",
+      "text": "Attendez. N’ouvrez rien d’autre. J’entends de nouveau la pluie dehors. Le couloir est à sa place… et cette porte donne enfin sur le jardin. Vous avez retrouvé le chemin. Pas parce que vous vous êtes tous crus. Parce que vous avez cherché ce qui pouvait être vérifié. Je suis de ce côté maintenant. Ne laissez pas la maison vous convaincre qu’elle vous a rendu un service."
+    },
+    {
+      "id": "rituel-echec",
+      "voice": "La présence",
+      "channel": "ipad_public",
+      "role": null,
+      "stage": 5,
+      "trigger": "final_vote_resolved_and_passage_not_closed_including_deadlock",
+      "target_seconds": [25, 35],
+      "direction": "Voix posée, satisfaite sans rire. Aucun cri final. Terminer plus près du micro, mais au même niveau sonore.",
+      "text": "Écoutez. Plus personne ne frappe de l’autre côté. C’est plus simple ainsi. Vous pouvez garder vos explications, vos souvenirs, vos petites certitudes. Le passage est resté ouvert. Il m’a suffi de vous laisser décider ce que vous étiez prêts à croire. Maintenant, nous avons tout le temps d’en reparler."
+    }
+  ]
+}

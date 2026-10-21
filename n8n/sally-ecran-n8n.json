@@ -1,0 +1,346 @@
+{
+  "name": "Tu Etais La - Ecran collectif iPad",
+  "nodes": [
+    {
+      "id": "cb44405e-dc90-529f-9260-0f300238eba8",
+      "name": "Ecran Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tu-etais-la/ecran",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://thecat78500.github.io,http://127.0.0.1:8765,http://localhost:8765"
+        }
+      },
+      "webhookId": "8a099ab4-31b8-464c-8648-6dcd2529c393"
+    },
+    {
+      "id": "7d45b17f-405b-4068-b509-6540bfb1f089",
+      "name": "Ecran session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "jeu_sessions"
+        },
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ typeof $json.body?.partie === \"string\" && /^M[A-Z0-9]{7}$/.test($json.body.partie.trim().toUpperCase()) ? $json.body.partie.trim().toUpperCase() : \"INVALIDE\" }}"
+            }
+          ]
+        },
+        "matchType": "allConditions"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "e4bdedc3-17a7-5e29-a4ca-0f8c997ef226",
+      "name": "Autoriser ecran",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const requete=$('Ecran Webhook').first().json;\nconst body=requete.body||{},origin=String(requete.headers?.origin||'');\nconst permis=['https://thecat78500.github.io','http://127.0.0.1:8765','http://localhost:8765'];\nconst code=typeof body.partie==='string'?body.partie.trim().toUpperCase():'';\nconst token=typeof body.cle==='string'?body.cle:'';\nconst lignes=$input.all().map(i=>i.json);\nconst session=lignes.length===1?lignes[0]:null;\nconst autorise=(!origin||permis.includes(origin))&&/^M[A-Z0-9]{7}$/.test(code)&&/^[a-f0-9]{64}$/.test(token)&&\n  session?.session_id===code&&session.ecran_token===token&&['accueil','en_cours'].includes(session.statut);\nreturn [{json:autorise?{autorise:true,session_id:code,session}:{autorise:false}}];\n"
+      }
+    },
+    {
+      "id": "d7b0aee6-9aee-515e-a450-81bcbf3cb74c",
+      "name": "Acces accepte",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8fe64ac7-08ac-495a-bbe3-88074d0c9a3e",
+              "leftValue": "={{ $json.autorise === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "53055a1a-56f2-44bf-a899-22021de968bd",
+      "name": "Ecran participants",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "jeu_joueurs"
+        },
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Autoriser ecran\").first().json.session_id }}"
+            }
+          ]
+        },
+        "matchType": "allConditions"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "0bff2951-3762-4c38-9f96-18bf93005740",
+      "name": "Ecran enigmes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "jeu_enigmes"
+        },
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Autoriser ecran\").first().json.session_id }}"
+            }
+          ]
+        },
+        "matchType": "allConditions"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "dba99c80-5b93-5fee-ba06-d734a8376062",
+      "name": "Preparer ecran public",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const session=$('Autoriser ecran').first().json.session;\nconst participants=$('Ecran participants').all().map(i=>i.json).filter(j=>j.session_id===session.session_id).sort((a,b)=>Number(a.id||0)-Number(b.id||0));\nconst uniques=new Map();for(const j of participants){if(!uniques.has(String(j.telegram_chat_id)))uniques.set(String(j.telegram_chat_id),j)}\nconst owner=uniques.get(String(session.organisateur_chat_id));\nconst invites=[...uniques.values()].filter(j=>String(j.telegram_chat_id)!==String(session.organisateur_chat_id)).slice(0,Number(session.nombre_joueurs)-1);\nconst joueurs=[...(owner?[owner]:[]),...invites].map(j=>({prenom:String(j.prenom||'Invité').slice(0,80)}));\nconst lignes=$input.all().map(i=>i.json).filter(e=>e.session_id===session.session_id);\nlet active=null,carnet=[],initialise=false;\nif(session.statut==='en_cours'&&lignes.length===5&&[1,2,3,4,5].every(n=>lignes.filter(e=>e.etape===String(n)).length===1)){\n  const etapes=lignes.sort((a,b)=>Number(a.etape)-Number(b.etape));\n  if(etapes.every(e=>['resolue','a_resoudre'].includes(e.statut))){\n    initialise=true;\n    const premiere=etapes.findIndex(e=>e.statut!=='resolue');\n    carnet=etapes.slice(0,premiere<0?5:premiere).map(e=>({etape:Number(e.etape),titre:String(e.titre),reponse:String(e.solution)}));\n    if(premiere>=0){const e=etapes[premiere];active={etape:Number(e.etape),titre:String(e.titre),enonce:String(e.enonce)}}\n  }\n}\n// Liste blanche explicite : ne jamais renvoyer les lignes brutes des tables.\nreturn [{json:{ok:true,partie:{code:session.session_id,scenario_id:Number(session.scenario_id),statut:session.statut,nombre_joueurs:Number(session.nombre_joueurs)},joueurs,\n  progression:{initialise,resolues:carnet.length,total:5,active,carnet},actualise_a:new Date().toISOString()}}];\n"
+      }
+    },
+    {
+      "id": "b3008b96-c049-5bff-ba6e-ce59ae2332ad",
+      "name": "Retour ecran",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Referrer-Policy",
+                "value": "no-referrer"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "591d4b78-0377-550f-aa0c-23b1865ee7d8",
+      "name": "Refuser ecran",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        250
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {ok:false,erreur:\"Accès refusé. Vérifiez le code et l’association de cet écran.\"} }}",
+        "options": {
+          "responseCode": 403,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "4c54b012-0bd6-5232-9d34-4e38f1c96fbb",
+      "name": "Connexion du site",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -420
+      ],
+      "parameters": {
+        "content": "## Écran collectif — lecture seule\nPOST /webhook/tu-etais-la/ecran\nFormulaire : partie=CODE&cle=CLE_ASSOCIATION\nSélectionner jeu_sessions / jeu_joueurs / jeu_enigmes dans les trois nœuds Data Table.\nAjouter ecran_token (String) à jeu_sessions et importer aussi la version Telegram avec /ipad.\nAucun credential API à exposer dans GitHub. Réponse sur liste blanche, sans camps ni indices privés.\nWorkflow séparé : peut rester actif en même temps que le workflow Telegram.",
+        "width": 900,
+        "height": 330
+      }
+    }
+  ],
+  "connections": {
+    "Ecran Webhook": {
+      "main": [
+        [
+          {
+            "node": "Ecran session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ecran session": {
+      "main": [
+        [
+          {
+            "node": "Autoriser ecran",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autoriser ecran": {
+      "main": [
+        [
+          {
+            "node": "Acces accepte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acces accepte": {
+      "main": [
+        [
+          {
+            "node": "Ecran participants",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuser ecran",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ecran participants": {
+      "main": [
+        [
+          {
+            "node": "Ecran enigmes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ecran enigmes": {
+      "main": [
+        [
+          {
+            "node": "Preparer ecran public",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer ecran public": {
+      "main": [
+        [
+          {
+            "node": "Retour ecran",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  }
+}

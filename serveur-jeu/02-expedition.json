@@ -1,0 +1,327 @@
+{
+  "name": "Tu Etais La - Expedition persistante",
+  "nodes": [
+    {
+      "id": "8d47ecf5-e7e3-5492-95c7-65ed17f47844",
+      "name": "Toutes les 10 secondes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "554b8369-0be4-537d-a16d-c7a3ef043450",
+      "name": "Reserver les envois",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        250,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8790/outbox/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}",
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "ecf4d50e-edad-5725-9e20-e2dbff5e632c",
+      "name": "Chaque envoi",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        500,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "deliveries",
+        "options": {}
+      }
+    },
+    {
+      "id": "a2074f59-7633-566f-8057-c9d7bee004ab",
+      "name": "Message texte",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        750,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3bd950d2-30ba-459b-bce1-3dca7bc2567c",
+              "leftValue": "={{ $json.kind === \"text\" }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "70c487cb-e6fc-5aac-a5cd-7d6d97955316",
+      "name": "Envoyer le texte",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1000,
+        -100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "4fb22820-1a49-5fbe-8e42-0c3266236112",
+      "name": "Confirmer le texte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8790/outbox/ack",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { delivery_id: $(\"Chaque envoi\").item.json.delivery_id, lease: $(\"Chaque envoi\").item.json.lease, result: $json } }}",
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "d8c99767-1196-597f-9223-69652f36af8f",
+      "name": "Lire le vocal",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        150
+      ],
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "={{ $json.path }}",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "f3ea513c-64c1-55cb-8563-4016e4fa698e",
+      "name": "Envoyer le vocal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        150
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botREMPLACER_PAR_VOTRE_JETON/sendVoice",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $(\"Chaque envoi\").item.json.chat_id }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "voice",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "924e5461-da54-5842-b852-26acdb70e78f",
+      "name": "Confirmer le vocal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        150
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8790/outbox/ack",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { delivery_id: $(\"Chaque envoi\").item.json.delivery_id, lease: $(\"Chaque envoi\").item.json.lease, result: $json } }}",
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "16a140aa-b708-5373-a0c6-b825bf5910ef",
+      "name": "Configuration expedition",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "content": "## À configurer\n- Les 3 appels locaux : Header Auth Mémoire du jeu.\n- Envoyer le texte : credential Telegram EXISTANT.\n- Envoyer le vocal : remplacer le jeton dans l’URL localement ; ne jamais publier l’export configuré.\n\nLa boîte persistante réserve un seul envoi à la fois par conversation. Un envoi non confirmé reste « uncertain » : vérifier avec admin.py. Pas de retry automatique sur une erreur réseau.\nLes chuchotements sont 6 textes d’ambiance préparés (2–4 min), puis s’arrêtent. Réponses libres : Agent Sally dans le workflow de réception.",
+        "width": 1000,
+        "height": 330
+      }
+    }
+  ],
+  "connections": {
+    "Toutes les 10 secondes": {
+      "main": [
+        [
+          {
+            "node": "Reserver les envois",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserver les envois": {
+      "main": [
+        [
+          {
+            "node": "Chaque envoi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chaque envoi": {
+      "main": [
+        [
+          {
+            "node": "Message texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message texte": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le texte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire le vocal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer le texte": {
+      "main": [
+        [
+          {
+            "node": "Confirmer le texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le vocal": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le vocal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer le vocal": {
+      "main": [
+        [
+          {
+            "node": "Confirmer le vocal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "tags": []
+}

@@ -1,0 +1,198 @@
+{
+  "name": "Tu Etais La - Reception et agent Sally",
+  "nodes": [
+    {
+      "id": "f8f667cd-266f-5276-8f90-a9563eb6e02d",
+      "name": "Recevoir Telegram",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "webhookId": "cb764962-8f77-4891-bda9-786b8bb980da"
+    },
+    {
+      "id": "2759ef70-685a-50ee-b69c-fe34fb437e94",
+      "name": "Memoriser et preparer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        250,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8790/telegram",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "c969a42a-c933-521f-bdb3-b678e26648e7",
+      "name": "Sally doit repondre",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        500,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "147ba6ad-f996-4227-a16d-f88dfd0e2fb5",
+              "leftValue": "={{ $json.needs_ai }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7ea4cce1-57a7-5a72-9d59-90d766f73942",
+      "name": "Agent Sally - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        750,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.request }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "cf50f57f-fcdb-5fb6-827d-34858210541a",
+      "name": "Valider la reponse et mettre en attente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8790/ai/complete",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_id: $(\"Memoriser et preparer\").first().json.event_id, response: $json } }}",
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "b1e4d1bd-54f1-5009-8965-91c42276023a",
+      "name": "Configuration reception",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        250
+      ],
+      "parameters": {
+        "content": "## À configurer\n- Recevoir Telegram : credential du bot existant.\n- Les 2 appels locaux : Header Auth Mémoire du jeu.\n- Agent Sally : credential OpenAI EXISTANT.\n\nCommandes : /creer 4 1, /rejoindre CODE Pseudo, /demarrer.\nLa réponse est stockée dans la boîte d’envoi : activer aussi 02-expedition.json.\nUn seul workflow Telegram en écoute pour ce bot.\nPas d’outils donnés au modèle : aucune modification des camps, étapes ou destinataires par l’IA.",
+        "width": 1000,
+        "height": 310
+      }
+    }
+  ],
+  "connections": {
+    "Recevoir Telegram": {
+      "main": [
+        [
+          {
+            "node": "Memoriser et preparer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoriser et preparer": {
+      "main": [
+        [
+          {
+            "node": "Sally doit repondre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sally doit repondre": {
+      "main": [
+        [
+          {
+            "node": "Agent Sally - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Sally - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Valider la reponse et mettre en attente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "tags": []
+}

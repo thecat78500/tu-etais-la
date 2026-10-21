@@ -1,0 +1,10 @@
+[Unit]
+Description=Sauvegarde coherente SQLite Tu Etais La
+
+[Service]
+Type=oneshot
+User=tuetaisla
+Group=tuetaisla
+EnvironmentFile=/etc/tu-etais-la.env
+UMask=0077
+ExecStart=/bin/sh -c '/usr/bin/python3 /opt/tu-etais-la/server.py --backup /srv/tu-etais-la/sauvegardes/jeu-$(date +%%Y%%m%%d-%%H%%M%%S).sqlite3'

@@ -1,0 +1,10 @@
+[Unit]
+Description=Sauvegarde quotidienne de la memoire du jeu
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=tu-etais-la-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=Tu Etais La - import des vocaux depuis le Studio
+After=network.target
+
+[Service]
+User=tuetaislamedias
+Group=tuetaislamedias
+WorkingDirectory=/opt/tu-etais-la-medias
+EnvironmentFile=/etc/tu-etais-la-medias.env
+ExecStart=/usr/bin/python3 -u /opt/tu-etais-la-medias/media_server.py
+Restart=on-failure
+RestartSec=5
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/tu-etais-la/media/imports
+
+[Install]
+WantedBy=multi-user.target
