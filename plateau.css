@@ -84,3 +84,62 @@ body.plateau-ouvert{overflow:hidden}
 }
 @media (max-height:700px) and (min-aspect-ratio:1/1){#pl-trace{-webkit-line-clamp:2}.pl-dock button{min-height:60px}}
 @media (prefers-reduced-motion:reduce){#plateau *,#plateau *::before{animation:none!important;transition:none!important}}
+
+/* --- Appel entrant de Sally : il faut décrocher pour l'entendre. */
+.pl-appel{position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(70% 60% at 50% 42%,rgba(224,164,90,.16),transparent 70%),rgba(4,5,6,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pl-appel[hidden]{display:none}
+.pl-appel-halo{position:absolute;left:50%;top:42%;width:0;height:0;pointer-events:none}
+.pl-appel-halo i{position:absolute;left:-210px;top:-210px;width:420px;height:420px;border-radius:50%;border:2px solid var(--braise);opacity:0}
+.pl-appel[data-phase="sonne"] .pl-appel-halo i{animation:ondeAppel 2.6s ease-out infinite}
+.pl-appel[data-phase="sonne"] .pl-appel-halo i:nth-child(2){animation-delay:.85s}.pl-appel[data-phase="sonne"] .pl-appel-halo i:nth-child(3){animation-delay:1.7s}
+.pl-appel[data-phase="en-ligne"] .pl-appel-halo i{animation:ondeAppel 6s ease-out infinite;border-color:rgba(224,164,90,.5)}
+.pl-appel[data-phase="en-ligne"] .pl-appel-halo i:nth-child(2){animation-delay:2s}.pl-appel[data-phase="en-ligne"] .pl-appel-halo i:nth-child(3){animation-delay:4s}
+.pl-appel-carte{position:relative;display:grid;justify-items:center;gap:10px;width:min(720px,94vw);text-align:center}
+.pl-appel-etat{margin:0;font:400 clamp(13px,1.4vw,16px)/1 var(--etiquette);letter-spacing:.34em;text-transform:uppercase;color:var(--braise)}
+.pl-appel[data-phase="termine"] .pl-appel-etat{color:var(--papier-doux)}
+.pl-appel-visage{display:grid;place-items:center;width:clamp(120px,16vw,170px);aspect-ratio:1;margin:8px 0 2px;border-radius:50%;border:2px solid var(--braise);background:radial-gradient(circle at 35% 30%,rgba(242,194,122,.3),rgba(224,164,90,.08) 60%,#0a0c0d);box-shadow:0 0 50px rgba(224,164,90,.3)}
+.pl-appel-visage span{font:italic 400 clamp(64px,8vw,92px)/1 var(--titre);color:var(--braise-vive)}
+.pl-appel[data-phase="sonne"] .pl-appel-visage{animation:sonne 2.6s ease-in-out infinite}
+.pl-appel-nom{margin:0;font:400 clamp(48px,7vw,88px)/1 var(--titre);letter-spacing:-.005em}
+.pl-appel-sujet{margin:0;font:italic 400 clamp(17px,1.9vw,22px)/1.4 var(--texte);color:var(--papier-doux)}
+.pl-appel-duree{margin:4px 0 0;font:400 clamp(16px,1.8vw,22px)/1 var(--etiquette);letter-spacing:.2em;color:var(--papier-doux)}
+.pl-appel[data-phase="sonne"] .pl-appel-duree,.pl-appel[data-phase="sonne"] .pl-appel-onde{display:none}
+.pl-appel-onde{display:flex;align-items:center;justify-content:center;gap:6px;height:44px;margin:2px 0}
+.pl-appel-onde b{display:block;width:5px;height:8px;border-radius:3px;background:var(--braise);opacity:.55}
+.pl-appel-onde.parle b{animation:barre 1s ease-in-out infinite}
+.pl-appel-onde.parle b:nth-child(2n){animation-delay:.18s}.pl-appel-onde.parle b:nth-child(3n){animation-delay:.42s}.pl-appel-onde.parle b:nth-child(5n){animation-delay:.67s}
+.pl-appel-texte{margin:6px 0 0;max-height:26vh;overflow-y:auto;padding:14px 20px;border-left:2px solid var(--braise);background:rgba(10,12,13,.7);font:italic 400 clamp(16px,1.7vw,21px)/1.55 var(--texte);color:var(--papier);text-align:left}
+.pl-appel-texte[hidden]{display:none}
+.pl-appel-actions{display:flex;gap:clamp(18px,4vw,60px);justify-content:center;margin-top:clamp(16px,3vh,34px)}
+.pl-appel-actions button{display:flex;align-items:center;gap:14px;min-height:88px;min-width:min(260px,40vw);padding:0 clamp(22px,3vw,38px);border-radius:60px;border:2px solid var(--braise);font:400 clamp(20px,2.2vw,28px)/1 var(--titre);justify-content:center}
+.pl-appel-actions button[hidden]{display:none}
+.pl-icone{display:grid}.pl-icone-raccroche svg{transform:rotate(135deg)}
+.pl-decrocher{background:var(--braise);color:#1a1209;animation:souffleCadre 1.5s ease-in-out infinite}
+.pl-decrocher .pl-icone svg{animation:decroche .9s ease-in-out infinite}
+.pl-ignorer{background:transparent;color:var(--papier-doux);border-color:var(--rouille)!important}
+.pl-raccrocher{background:var(--rouille);border-color:var(--rouille)!important;color:#1a0d09}
+.pl-manques{position:absolute;left:clamp(20px,3.4vw,44px);bottom:128px;z-index:4;display:flex;align-items:center;gap:14px;min-height:56px;padding:0 20px;border:1px solid var(--rouille);background:rgba(20,10,8,.88);border-radius:40px;animation:surgir .6s ease both}
+.pl-manques[hidden]{display:none}
+.pl-manques span{font:italic 400 clamp(15px,1.5vw,18px) var(--texte);color:var(--papier)}.pl-manques b{font:400 13px/1 var(--etiquette);letter-spacing:.14em;text-transform:uppercase;color:var(--braise-vive)}
+#pl-feuille-liste li.manque{border-color:var(--rouille)}.pl-badge{display:inline-block;margin-left:10px;padding:3px 10px;border:1px solid var(--rouille);border-radius:20px;font:400 11px/1.2 var(--etiquette);letter-spacing:.14em;text-transform:uppercase;color:var(--rouille);font-style:normal}
+@keyframes ondeAppel{0%{transform:scale(.35);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+@keyframes sonne{0%,18%,100%{transform:rotate(0)}3%{transform:rotate(-6deg)}6%{transform:rotate(6deg)}9%{transform:rotate(-5deg)}12%{transform:rotate(5deg)}15%{transform:rotate(-2deg)}}
+@keyframes decroche{0%,100%{transform:rotate(0)}50%{transform:rotate(-18deg)}}
+@keyframes barre{0%,100%{height:8px}50%{height:40px}}
+@keyframes souffleCadre{0%,100%{box-shadow:0 0 0 0 rgba(224,164,90,.5)}50%{box-shadow:0 0 0 16px rgba(224,164,90,0)}}
+@media (max-aspect-ratio:1/1){.pl-appel-actions{flex-direction:column;align-items:center;width:100%}.pl-appel-actions button{width:min(420px,86vw)}.pl-manques{bottom:210px}}
+/* Les couches (appel, feuille, invitation, appels manqués) se posent par-dessus : elles ne prennent aucune ligne de la grille. */
+#plateau>.pl-appel,#plateau>.pl-feuille,#plateau>.pl-invite,#plateau>.pl-manques{position:absolute}
+/* Les ondes de l'appel partent du visage de Sally, quel que soit le format de l'écran. */
+.pl-appel-halo{display:none}
+.pl-appel-visage{position:relative}
+.pl-appel-visage::before,.pl-appel-visage::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--braise);opacity:0;pointer-events:none}
+.pl-appel[data-phase="sonne"] .pl-appel-visage::before{animation:ondeVisage 2.6s ease-out infinite}
+.pl-appel[data-phase="sonne"] .pl-appel-visage::after{animation:ondeVisage 2.6s ease-out 1.3s infinite}
+.pl-appel[data-phase="en-ligne"] .pl-appel-visage::before{animation:ondeVisage 6s ease-out infinite;border-color:rgba(224,164,90,.5)}
+.pl-appel[data-phase="en-ligne"] .pl-appel-visage::after{animation:ondeVisage 6s ease-out 3s infinite;border-color:rgba(224,164,90,.5)}
+@keyframes ondeVisage{0%{transform:scale(1);opacity:.85}100%{transform:scale(2.6);opacity:0}}
+.pl-essai{margin-top:14px;border-top:1px solid var(--trait);padding-top:12px}
+.pl-essai summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font:400 13px/1 var(--etiquette);letter-spacing:.14em;text-transform:uppercase;color:var(--papier-doux)}
+#pl-bruits{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#pl-bruits button{min-height:52px;padding:0 16px;border:1px solid var(--trait);background:rgba(239,230,210,.04);font:400 14px/1 var(--etiquette);letter-spacing:.1em;text-transform:uppercase}

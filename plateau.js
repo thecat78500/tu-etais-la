@@ -5,18 +5,19 @@
  const $ = id => document.getElementById(id);
  const ROMAINS = ['I', 'II', 'III', 'IV', 'V'];
  const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=';
- const SRC_MUSIQUE = 'assets/audio/ambiance.mp3';
+ const SRC_MUSIQUE = ['assets/audio/ambiance.mp3', 'assets/audio/ambiance.wav'];
  // Textes des voix communes : affichés si le fichier audio manque, et lisibles en silence.
  const TEXTE_ACCUEIL = 'Vous m’entendez ? C’est Sally. Je crois que je suis dans la maison. La même maison. Mais pas tout à fait. Les pièces sont au même endroit, et pourtant rien n’est à sa place. C’est comme un rêve dont je perds les morceaux. Quelque chose est près de moi. Il me fait peur. Il veut ce que cette maison garde fermé. Elle a été construite pour ça, je crois : pour retenir ce qui attend de l’autre côté. Remontez mon chemin. Passez les sceaux. Trouvez la porte qui me ramène, sans lui ouvrir le passage. Et si une voix vous semble familière ce soir… méfiez-vous. Ici, la maison laisse filtrer des visions et des pensées. Tout n’est pas vrai. Écoutez-moi. Écoutez-vous.';
  const TEXTE_ANCIEN = 'Vous m’entendez ? C’est Sally. Je ne sais pas combien de temps ce message restera le même. Je suis encore dans la maison. Mais les pièces ne donnent plus aux mêmes endroits. Vous avez chacun gardé un souvenir de cette nuit. Seul, il ne vous servira à rien. Rassemblez-les. Et si une voix vous demande de choisir à ma place… cherchez d’abord ce qu’elle vous cache.';
  const TEXTE_SCEAU = 'Une nouvelle pièce du dossier est accessible. Laissez chacun la regarder avant de raconter ce qu’elle signifie. Certains détails confirment un souvenir. D’autres ne font que lui ressembler. Vous pouvez encore faire la différence.';
  const SOURCES = {
-  accueil: [{src: 'assets/audio/ACCUEIL_SALLY.mp3', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/sally-introduction.mp3', texte: TEXTE_ANCIEN}],
-  sceau: [{src: 'assets/audio/COMMUN_SALLY_EVENEMENT_preuve.mp3', texte: TEXTE_SCEAU}]
+  accueil: [{src: 'assets/audio/ACCUEIL_SALLY.mp3', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/ACCUEIL_SALLY.wav', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/sally-introduction.mp3', texte: TEXTE_ANCIEN}],
+  sceau: [{src: 'assets/audio/COMMUN_SALLY_EVENEMENT_preuve.mp3', texte: TEXTE_SCEAU}, {src: 'assets/audio/COMMUN_SALLY_EVENEMENT_preuve.wav', texte: TEXTE_SCEAU}]
  };
  const voix = $('pl-audio-voix'), musique = $('pl-audio-musique');
  const etat = {deverrouille: false, ouvert: false, ctx: null, bus: null, code: null, resolues: 0, data: null, affaires: null,
-  musiqueVoulue: true, volume: 0.6, voixEnCours: false, courant: null, enAttente: null, jeton: 0, absent: false, texteActuel: ''};
+  musiqueVoulue: true, volume: 0.6, voixEnCours: false, courant: null, enAttente: null, jeton: 0, absent: false, texteActuel: '',
+  appel: null, sonnerie: false, delaiSonnerie: 40000, minuterie: null, chrono: null, manques: []};
  try { etat.musiqueVoulue = localStorage.getItem('tu-etais-la-musique') !== 'off'; const v = Number(localStorage.getItem('tu-etais-la-volume')); if(v >= 0.1 && v <= 1) etat.volume = v; } catch {}
  const lireSession = cle => { try { return JSON.parse(sessionStorage.getItem(cle) || 'null'); } catch { return null; } };
  const ecrireSession = (cle, valeur) => { try { sessionStorage.setItem(cle, JSON.stringify(valeur)); } catch {} };
@@ -56,21 +57,132 @@
    try { sortie.gain.setTargetAtTime(0, etat.ctx.currentTime, 0.5); } catch {}
    setTimeout(() => sources.forEach(s => { try { s.stop(); } catch {} }), 2500);
   }};
+ // --- Bruits de la maison : un son bref de temps en temps, plus rapproché et plus sombre quand le jeu avance.
+ // Chaque bruit existe en version fabriquée par le navigateur ; un fichier assets/audio/effets/<nom>.mp3 le remplace s'il existe.
+ const EFFETS = ['craquement', 'coups', 'pas', 'vent', 'murmure', 'horloge', 'porte', 'cloche'];
+ const bruit = {tampon: null, sortie: null, buffers: {}, joues: [], minuterie: null, dernier: null,
+  delais: {debut: [35000, 75000], milieu: [25000, 55000], fin: [15000, 40000]}};
+ function tamponBruit(){
+  if(bruit.tampon) return bruit.tampon;
+  const c = etat.ctx, n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  return bruit.tampon = b;
+ }
+ function sortieEffets(){
+  if(!bruit.sortie){ bruit.sortie = etat.ctx.createGain(); bruit.sortie.connect(etat.ctx.destination); }
+  bruit.sortie.gain.value = 0.9 * etat.volume; return bruit.sortie;
+ }
+ const enveloppe = (g, t, attaque, duree, niveau) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(niveau, t + attaque); g.gain.exponentialRampToValueAtTime(0.0001, t + duree); };
+ function coup(t, freq, niveau, duree = 0.28){
+  const c = etat.ctx, s = sortieEffets(), o = c.createOscillator(), g = c.createGain();
+  o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.45, t + duree); o.connect(g); g.connect(s); enveloppe(g, t, 0.008, duree, niveau); o.start(t); o.stop(t + duree + 0.05);
+  const n = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain(); n.buffer = tamponBruit(); f.type = 'lowpass'; f.frequency.value = 300;
+  n.connect(f); f.connect(gn); gn.connect(s); enveloppe(gn, t, 0.004, 0.12, niveau * 0.6); n.start(t, Math.random(), 0.2);
+ }
+ function grincement(t, debut, fin, duree, niveau){
+  const c = etat.ctx, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(debut, t); o.frequency.linearRampToValueAtTime(fin, t + duree * 0.5); o.frequency.linearRampToValueAtTime(debut * 1.1, t + duree);
+  f.type = 'bandpass'; f.frequency.setValueAtTime(500, t); f.frequency.linearRampToValueAtTime(1100, t + duree); f.Q.value = 6;
+  o.connect(f); f.connect(g); g.connect(sortieEffets()); enveloppe(g, t, duree * 0.2, duree, niveau); o.start(t); o.stop(t + duree + 0.05);
+ }
+ function souffleBref(t, duree, freq, niveau, q = 0.8){
+  const c = etat.ctx, n = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  n.buffer = tamponBruit(); n.loop = true; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  n.connect(f); f.connect(g); g.connect(sortieEffets()); enveloppe(g, t, duree * 0.4, duree, niveau); n.start(t, Math.random()); n.stop(t + duree + 0.05);
+ }
+ function cloche(t){
+  const c = etat.ctx;
+  [[392, 0.1, 4.2], [392 * 2.76, 0.04, 2.6], [392 * 5.4, 0.02, 1.6]].forEach(([freq, niveau, duree]) => {
+   const o = c.createOscillator(), g = c.createGain(); o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t, 0.01, duree, niveau); o.start(t); o.stop(t + duree + 0.05); });
+ }
+ const SYNTHESE = {
+  craquement: t => { grincement(t, 95, 62, 1.1, 0.2); },
+  coups: t => { coup(t, 85, 0.5); coup(t + 0.42, 80, 0.45); if(Math.random() < 0.5) coup(t + 1.1, 90, 0.4); },
+  pas: t => { for(let i = 0; i < 6; i++) coup(t + i * 0.62, i % 2 ? 52 : 62, 0.17, 0.18); },
+  vent: t => { souffleBref(t, 3.6, 420, 0.32); },
+  murmure: t => { for(let i = 0; i < 6; i++) souffleBref(t + i * 0.33, 0.28, 1700 + Math.random() * 800, 0.05, 5); },
+  horloge: t => { for(let i = 0; i < 8; i++) souffleBref(t + i * 0.5, 0.04, 3500, 0.14, 8); },
+  porte: t => { grincement(t, 230, 150, 1.6, 0.13); coup(t + 1.5, 70, 0.3); },
+  cloche: t => cloche(t),
+  // Sceau ouvert : un verrou qui claque, puis une grave résonance.
+  'sceau-ouvert': t => { coup(t, 110, 0.6, 0.3); const c = etat.ctx, o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 1800; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + 0.1, 0.002, 0.03, 0.12); o.start(t + 0.1); o.stop(t + 0.16);
+   [[73.4, 0.16, 2.4], [110, 0.08, 1.9]].forEach(([freq, niveau, duree]) => { const p = c.createOscillator(), q = c.createGain(); p.frequency.value = freq; p.connect(q); q.connect(sortieEffets()); enveloppe(q, t + 0.2, 0.3, duree, niveau); p.start(t + 0.2); p.stop(t + 0.2 + duree + 0.05); }); },
+  // Indice découvert : deux notes claires qui montent, comme un éclat de verre.
+  'indice-decouvert': t => { const c = etat.ctx; [[659.3, 0], [987.8, 0.16]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.01, 1.5, 0.13); o.start(t + decalage); o.stop(t + decalage + 1.55); }); }
+ };
+ async function jouerEffet(id){
+  if(!etat.ctx || etat.ctx.state === 'closed') return;
+  try { etat.ctx.resume?.(); } catch {}
+  let tampon = bruit.buffers[id];
+  if(tampon === undefined){
+   tampon = null;
+   // Un nom sans extension : on cherche « nom.wav », puis .mp3, .m4a et .ogg. On peut aussi écrire l'extension (« pas.wav »).
+   const candidats = /\.(mp3|m4a|wav|ogg)$/i.test(id) ? [id] : ['wav', 'mp3', 'm4a', 'ogg'].map(e => id + '.' + e);
+   for(const fichier of candidats){
+    try { const r = await fetch('assets/audio/effets/' + encodeURIComponent(fichier), {cache: 'no-store'}); if(r.ok && /audio|octet|mpeg|ogg|wav|wave/.test(r.headers.get('content-type') || '')){ tampon = await etat.ctx.decodeAudioData(await r.arrayBuffer()); break; } } catch {}
+   }
+   bruit.buffers[id] = tampon;
+  }
+  if(!tampon && !SYNTHESE[id]) return; // nom inconnu et fichier absent : rien à jouer
+  bruit.joues.push(id);
+  if(tampon){ const s = etat.ctx.createBufferSource(); s.buffer = tampon; s.connect(sortieEffets()); s.start(); return; }
+  SYNTHESE[id]?.(etat.ctx.currentTime + 0.05);
+ }
+ // Liste facultative assets/audio/effets/effets.json : les sons que vous avez déposés, au choix pour tous les moments
+ // ([« a », « b »]) ou par moment ({ « debut »: […], « milieu »: […], « fin »: […] }). Sans liste, les huit bruits de base sont utilisés.
+ async function listeEffets(){
+  if(bruit.liste !== undefined) return bruit.liste;
+  bruit.liste = null;
+  try {
+   const r = await fetch('assets/audio/effets/effets.json', {cache: 'no-store'});
+   if(r.ok){ const j = await r.json(); const noms = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()) : [];
+    bruit.liste = Array.isArray(j) ? {tous: noms(j)} : {debut: noms(j.debut), milieu: noms(j.milieu), fin: noms(j.fin), tous: noms(j.tous)}; }
+  } catch {}
+  return bruit.liste;
+ }
+ const reglesEffets = () => { const l = bruit.liste; if(!l) return EFFETS; const g = groupeCourant(); const pool = l[g]?.length ? l[g] : l.tous?.length ? l.tous : EFFETS; return pool; };
+ function groupeCourant(){ const e = etat.data?.progression?.active?.etape || (etat.resolues >= 5 ? 5 : 1); return e <= 2 ? 'debut' : e <= 4 ? 'milieu' : 'fin'; }
+ function programmerEffet(delai){
+  clearTimeout(bruit.minuterie); bruit.minuterie = null;
+  if(!etat.ouvert || !etat.deverrouille || !etat.musiqueVoulue) return;
+  const [min, max] = bruit.delais[groupeCourant()];
+  bruit.minuterie = setTimeout(() => {
+   if(!etat.ouvert || !etat.deverrouille || !etat.musiqueVoulue) return;
+   // Jamais par-dessus une voix, une sonnerie ou un appel.
+   if(!etat.voixEnCours && !etat.appel && !etat.sonnerie && !document.hidden){
+    listeEffets().then(() => {
+     const pool = reglesEffets(); if(!pool.length) return;
+     let id; do { id = pool[Math.floor(Math.random() * pool.length)]; } while(id === bruit.dernier && pool.length > 1);
+     bruit.dernier = id; jouerEffet(id);
+    });
+   }
+   programmerEffet();
+  }, delai ?? min + Math.random() * (max - min));
+ }
  let musiqueActive = false;
- function volumeEffectif(){ return etat.volume * (etat.voixEnCours ? 0.28 : 1); }
+ function volumeEffectif(){ return etat.volume * (etat.voixEnCours || etat.sonnerie ? 0.28 : 1); }
  function regler(){
+  if(bruit.sortie) bruit.sortie.gain.value = 0.9 * etat.volume;
   if(etat.bus && etat.ctx) etat.bus.gain.setTargetAtTime(volumeEffectif(), etat.ctx.currentTime, 0.35);
   else musique.volume = Math.min(1, volumeEffectif());
  }
  function demarrerMusique(){
   if(!etat.deverrouille || !etat.musiqueVoulue || musiqueActive) return;
   musiqueActive = true;
-  let repli = false;
+  // Votre fichier ambiance.mp3 ou ambiance.wav s'il existe, sinon le souffle grave synthétique.
+  let essai = 0, repli = false;
   const bascule = () => { if(repli) return; repli = true; drone.demarrer(); };
-  musique.onerror = bascule; musique.loop = true; musique.src = SRC_MUSIQUE; regler();
-  const p = musique.play(); if(p && p.catch) p.catch(bascule);
+  const lire = () => {
+   const numero = essai++, source = SRC_MUSIQUE[numero];
+   if(!source) return bascule();
+   let echoue = false; const echec = () => { if(echoue || numero !== essai - 1) return; echoue = true; lire(); };
+   musique.onerror = echec; musique.loop = true; musique.src = source; regler();
+   const p = musique.play(); if(p && p.catch) p.catch(echec);
+  };
+  lire();
+  programmerEffet(20000); // premier bruit de la maison au bout d'une vingtaine de secondes
  }
- function arreterMusique(){ musiqueActive = false; try { musique.pause(); } catch {} drone.arreter(); }
+ function arreterMusique(){ musiqueActive = false; try { musique.pause(); } catch {} drone.arreter(); clearTimeout(bruit.minuterie); bruit.minuterie = null; }
 
  // --- Déverrouillage : à appeler pendant un toucher (iPad). Sans lui, aucun son ne peut démarrer.
  function deverrouiller(){
@@ -86,6 +198,7 @@
   for(const a of [voix, musique]){ try { a.muted = true; a.src = SILENCE; const p = a.play(); if(p && p.catch) p.catch(() => {}); a.pause(); a.muted = false; } catch {} }
   etat.deverrouille = true;
   if(etat.ouvert) demarrerMusique();
+  if(etat.appel?.phase === 'sonne') sonnerie.demarrer();
   rendre();
   if(etat.enAttente){ const id = etat.enAttente; etat.enAttente = null; jouer(id, true); }
  }
@@ -94,7 +207,51 @@
  function marquerJoue(id){ if(!etat.code) return; const cle = 'tu-etais-la-voix-' + etat.code, liste = lireSession(cle) || []; if(!liste.includes(id)){ liste.push(id); ecrireSession(cle, liste); } }
  const dejaJoue = id => (lireSession('tu-etais-la-voix-' + etat.code) || []).includes(id);
  function arreterVoix(){ etat.jeton++; try { voix.pause(); } catch {} etat.voixEnCours = false; regler(); }
- function finVoix(){ etat.voixEnCours = false; regler(); rendre(); }
+ function finVoix(){ etat.voixEnCours = false; regler(); if(etat.appel?.phase === 'en-ligne') terminerAppel(); else rendre(); }
+
+ // --- Appel entrant : chaque nouvelle voix de Sally sonne comme un téléphone, et il faut décrocher pour l'entendre.
+ // Une sonnerie grave et dissonante, fabriquée par le navigateur (aucun fichier). Silencieuse tant que le son n'est pas déverrouillé.
+ const sonnerie = {minuteur: null,
+  salve(){
+   if(!etat.ctx) return;
+   const c = etat.ctx, t0 = c.currentTime, sortie = c.createGain(); sortie.gain.value = 0; sortie.connect(c.destination);
+   [[404, 0], [431, 0]].forEach(([freq]) => { const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = freq; o.connect(sortie); o.start(t0); o.stop(t0 + 1.6); });
+   const niveau = 0.16 * etat.volume;
+   [0, 0.55].forEach(decalage => { sortie.gain.setValueAtTime(0, t0 + decalage); sortie.gain.linearRampToValueAtTime(niveau, t0 + decalage + 0.04); sortie.gain.setValueAtTime(niveau, t0 + decalage + 0.36); sortie.gain.linearRampToValueAtTime(0, t0 + decalage + 0.44); });
+  },
+  demarrer(){ this.arreter(); this.salve(); this.minuteur = setInterval(() => this.salve(), 2600); try { navigator.vibrate?.([300, 150, 300]); } catch {} },
+  arreter(){ if(this.minuteur){ clearInterval(this.minuteur); this.minuteur = null; } }};
+ function stopperMinuteries(){ clearTimeout(etat.minuterie); etat.minuterie = null; clearInterval(etat.chrono); etat.chrono = null; sonnerie.arreter(); etat.sonnerie = false; }
+ const lireManques = () => lireSession('tu-etais-la-manques-' + etat.code) || [];
+ function noterManque(id){ const liste = lireManques(); if(!liste.includes(id)){ liste.push(id); ecrireSession('tu-etais-la-manques-' + etat.code, liste); } etat.manques = liste; }
+ function retirerManque(id){ const liste = lireManques().filter(x => x !== id); ecrireSession('tu-etais-la-manques-' + etat.code, liste); etat.manques = liste; }
+ function appeler(id){
+  if(etat.appel && etat.appel.phase !== 'termine') { noterManque(id); marquerJoue(id); rendre(); return; } // un appel à la fois : le suivant sera manqué
+  stopperMinuteries(); marquerJoue(id);
+  etat.appel = {id, phase: 'sonne', debut: Date.now()}; etat.sonnerie = true; regler();
+  // Un sceau qui cède s'annonce d'abord par un claquement de verrou, puis le téléphone sonne.
+  const sonner = () => { if(etat.appel?.id === id && etat.appel.phase === 'sonne' && etat.deverrouille) sonnerie.demarrer(); };
+  // Sceau ouvert, puis nouvel indice découvert (de nouveaux fragments arrivent sur les téléphones), puis le téléphone sonne.
+  if(id.startsWith('sceau') && etat.deverrouille){ jouerEffet('sceau-ouvert'); setTimeout(() => { if(etat.ouvert) jouerEffet('indice-decouvert'); }, 1300); setTimeout(sonner, 2900); } else sonner();
+  etat.minuterie = setTimeout(() => { if(etat.appel?.id === id && etat.appel.phase === 'sonne') ignorer(true); }, etat.delaiSonnerie);
+  rendre();
+ }
+ function decrocher(){
+  if(!etat.appel || etat.appel.phase !== 'sonne') return;
+  const id = etat.appel.id;
+  deverrouiller(); stopperMinuteries(); retirerManque(id);
+  etat.appel = {id, phase: 'en-ligne', debut: Date.now()};
+  etat.chrono = setInterval(rendreChrono, 500);
+  jouer(id, true);
+ }
+ function ignorer(manque){ if(!etat.appel) return; const id = etat.appel.id; stopperMinuteries(); noterManque(id); etat.appel = null; regler(); rendre(); }
+ function terminerAppel(){
+  if(!etat.appel) return; stopperMinuteries();
+  etat.appel = {...etat.appel, phase: 'termine'}; rendre();
+  const id = etat.appel.id; setTimeout(() => { if(etat.appel?.id === id && etat.appel.phase === 'termine'){ etat.appel = null; rendre(); } }, 1600);
+ }
+ function raccrocher(){ if(!etat.appel) return; arreterVoix(); terminerAppel(); }
+ function rendreChrono(){ if(!etat.appel || etat.appel.phase !== 'en-ligne') return; const s = Math.floor((Date.now() - etat.appel.debut) / 1000); const el = $('pl-appel-duree'); if(el) el.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
  function jouer(id, automatique){
   const m = messageDe(id); if(!m) return;
   if(!etat.deverrouille){ etat.enAttente = id; rendre(); return; }
@@ -142,11 +299,26 @@
   bouton.setAttribute('aria-label', etat.voixEnCours ? 'Arrêter la voix' : 'Réécouter : ' + dernier.titre);
   const musiqueBtn = $('pl-musique'); musiqueBtn.setAttribute('aria-pressed', String(etat.musiqueVoulue)); musiqueBtn.querySelector('.pl-bouton-texte').textContent = etat.musiqueVoulue ? 'Ambiance' : 'Ambiance coupée';
   $('pl-volume').value = String(etat.volume);
-  $('pl-invite').hidden = etat.deverrouille;
-  $('pl-invite-texte').textContent = etat.enAttente ? 'La maison a quelque chose à dire. Touchez pour l’entendre.' : 'Touchez pour réveiller l’ambiance et entendre le message d’accueil.';
-  $('pl-transcription').hidden = !(etat.voixEnCours || etat.absent);
+  // Appel entrant : sonne, se décroche, se raccroche. Rien ne se joue sans décrocher.
+  const appel = etat.appel, appelMessage = appel ? messageDe(appel.id) : null;
+  $('pl-appel').hidden = !appel;
+  $('pl-appel').dataset.phase = appel?.phase || '';
+  if(appel){
+   $('pl-appel-etat').textContent = {sonne: 'Appel entrant', 'en-ligne': 'En ligne', termine: 'Appel terminé'}[appel.phase];
+   $('pl-appel-sujet').textContent = appelMessage?.titre || '';
+   $('pl-appel-ignorer').hidden = appel.phase !== 'sonne'; $('pl-appel-decrocher').hidden = appel.phase !== 'sonne'; $('pl-appel-raccrocher').hidden = appel.phase !== 'en-ligne';
+   $('pl-appel-texte').hidden = appel.phase === 'sonne'; $('pl-appel-texte').textContent = etat.absent ? 'Le fichier audio manque. ' + etat.texteActuel : etat.texteActuel;
+   $('pl-appel-onde').classList.toggle('parle', appel.phase === 'en-ligne' && etat.voixEnCours);
+   rendreChrono();
+  }
+  $('pl-manques').hidden = !etat.manques.length || !!appel;
+  $('pl-manques-texte').textContent = etat.manques.length > 1 ? `${etat.manques.length} appels manqués de Sally` : 'Appel manqué de Sally';
+  $('pl-invite').hidden = etat.deverrouille || !!appel;
+  $('pl-invite-texte').textContent = 'Touchez pour réveiller l’ambiance de la maison.';
+  $('pl-transcription').hidden = !(etat.voixEnCours || etat.absent) || !!appel;
   $('pl-transcription-texte').textContent = etat.texteActuel;
-  $('pl-feuille-liste').innerHTML = liste.map(m => `<li class="${m.id === etat.courant && etat.voixEnCours ? 'en-lecture' : ''}"><div><strong>${echapper(m.titre)}</strong><p>${echapper(m.sources[0].texte)}</p></div><button type="button" data-message="${m.id}" aria-label="Réécouter : ${echapper(m.titre)}">▶ Réécouter</button></li>`).join('');
+  $('pl-feuille-liste').innerHTML = liste.map(m => { const manque = etat.manques.includes(m.id);
+   return `<li class="${m.id === etat.courant && etat.voixEnCours ? 'en-lecture' : ''}${manque ? ' manque' : ''}"><div><strong>${echapper(m.titre)}</strong>${manque ? '<em class="pl-badge">Appel manqué</em>' : ''}<p>${echapper(m.sources[0].texte)}</p></div><button type="button" data-message="${m.id}" aria-label="${manque ? 'Rappeler' : 'Réécouter'} : ${echapper(m.titre)}">${manque ? '☎ Rappeler' : '▶ Réécouter'}</button></li>`; }).join('');
  }
  // L'énoncé du serveur commence par le titre de l'affaire et une trace de la nuit : on garde le texte propre au sceau.
  function enonceCourt(texte){ const blocs = String(texte || '').split(/\n\n/); return (blocs.length > 1 ? blocs.slice(1).join('\n\n') : blocs[0]).replace(/\n?Chacun peut me demander[^\n]*$/m, '').trim(); }
@@ -157,15 +329,15 @@
   // Premier regard sur cette partie : on note combien de sceaux sont déjà ouverts, sans les annoncer.
   const cleVus = 'tu-etais-la-sceaux-' + etat.code, vus = lireSession(cleVus);
   if(vus === null) ecrireSession(cleVus, etat.resolues);
-  if(!dejaJoue('accueil')){ jouer('accueil', true); return; }
-  if(vus !== null && etat.resolues > vus){ ecrireSession(cleVus, etat.resolues); jouer('sceau-' + etat.resolues, true); }
+  if(!dejaJoue('accueil')){ appeler('accueil'); return; }
+  if(vus !== null && etat.resolues > vus){ ecrireSession(cleVus, etat.resolues); appeler('sceau-' + etat.resolues); }
  }
  async function chargerAffaires(){ if(etat.affaires) return; try { const r = await fetch('catalogue-affaires.json', {cache: 'no-store'}); etat.affaires = r.ok ? await r.json() : []; } catch { etat.affaires = []; } rendre(); }
  function mettreAJour(data){
   etat.data = data;
   const partie = data?.partie;
-  if(!partie || partie.statut !== 'en_cours'){ if(etat.ouvert) fermer(); etat.code = null; return; }
-  if(etat.code !== partie.code){ etat.code = partie.code; etat.courant = null; etat.enAttente = null; }
+  if(!partie || partie.statut !== 'en_cours'){ if(etat.ouvert) fermer(); etat.code = null; etat.appel = null; etat.manques = []; stopperMinuteries(); return; }
+  if(etat.code !== partie.code){ etat.code = partie.code; etat.courant = null; etat.enAttente = null; etat.appel = null; stopperMinuteries(); etat.manques = lireManques(); }
   etat.resolues = data.progression?.resolues || 0;
   rendre(); evenements();
  }
@@ -173,15 +345,41 @@
   if(!etat.data?.partie || etat.data.partie.statut !== 'en_cours') return;
   etat.ouvert = true; chargerAffaires(); rendre(); demarrerMusique(); evenements();
  }
- function fermer(){ etat.ouvert = false; arreterVoix(); arreterMusique(); rendre(); }
+ function fermer(){
+  if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
+  etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique(); rendre();
+ }
 
  // --- Boutons.
  $('pl-regie').addEventListener('click', fermer);
  $('pl-activer').addEventListener('click', deverrouiller);
- $('pl-rejouer').addEventListener('click', () => { if(etat.voixEnCours){ arreterVoix(); rendre(); } else jouer(etat.courant || 'accueil', false); });
+ // Rappeler un appel manqué : on appelle Sally, elle répond tout de suite.
+ function rappeler(id){
+  deverrouiller(); stopperMinuteries(); retirerManque(id);
+  etat.appel = {id, phase: 'en-ligne', debut: Date.now()}; etat.chrono = setInterval(rendreChrono, 500);
+  $('pl-feuille').hidden = true; $('pl-voix').setAttribute('aria-expanded', 'false');
+  jouer(id, false);
+ }
+ $('pl-appel-decrocher').addEventListener('click', decrocher);
+ $('pl-appel-ignorer').addEventListener('click', () => ignorer(false));
+ $('pl-appel-raccrocher').addEventListener('click', raccrocher);
+ $('pl-manques').addEventListener('click', () => { const f = $('pl-feuille'); f.hidden = false; $('pl-voix').setAttribute('aria-expanded', 'true'); });
+ $('pl-rejouer').addEventListener('click', () => { if(etat.appel?.phase === 'sonne') return; if(etat.voixEnCours){ arreterVoix(); rendre(); } else jouer(etat.courant || 'accueil', false); });
  $('pl-voix').addEventListener('click', () => { const f = $('pl-feuille'); f.hidden = !f.hidden; $('pl-voix').setAttribute('aria-expanded', String(!f.hidden)); });
  $('pl-feuille-fermer').addEventListener('click', () => { $('pl-feuille').hidden = true; $('pl-voix').setAttribute('aria-expanded', 'false'); });
- $('pl-feuille-liste').addEventListener('click', e => { const b = e.target.closest('button[data-message]'); if(b){ deverrouiller(); jouer(b.dataset.message, false); } });
+ $('pl-feuille-liste').addEventListener('click', e => {
+  const b = e.target.closest('button[data-message]'); if(!b || etat.appel?.phase === 'sonne') return;
+  deverrouiller(); if(etat.manques.includes(b.dataset.message)) rappeler(b.dataset.message); else jouer(b.dataset.message, false);
+ });
+ // Essai des bruits : pour juger à l'oreille ce que la maison peut faire entendre.
+ // Les boutons montrent vos sons si effets.json existe, sinon les huit bruits de base, plus le verrou.
+ async function boutonsBruits(){
+  await listeEffets();
+  const l = bruit.liste, noms = l ? [...new Set([...(l.debut || []), ...(l.milieu || []), ...(l.fin || []), ...(l.tous || [])])] : EFFETS;
+  $('pl-bruits').innerHTML = [...(noms.length ? noms : EFFETS), 'sceau-ouvert', 'indice-decouvert'].map(id => `<button type="button" data-bruit="${echapper(id)}">${echapper(id)}</button>`).join('');
+ }
+ boutonsBruits();
+ $('pl-bruits').addEventListener('click', e => { const b = e.target.closest('button[data-bruit]'); if(b){ deverrouiller(); jouerEffet(b.dataset.bruit); } });
  $('pl-musique').addEventListener('click', () => {
   deverrouiller(); etat.musiqueVoulue = !etat.musiqueVoulue;
   try { localStorage.setItem('tu-etais-la-musique', etat.musiqueVoulue ? 'on' : 'off'); } catch {}
@@ -189,6 +387,9 @@
   rendre();
  });
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
- window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer,
-  etat: () => ({deverrouille: etat.deverrouille, ouvert: etat.ouvert, voixEnCours: etat.voixEnCours, courant: etat.courant, musique: etat.musiqueVoulue, messages: messages().map(m => m.id), absent: etat.absent, enAttente: etat.enAttente})};
+ window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher,
+  delais: ms => { etat.delaiSonnerie = ms; },
+  effet: jouerEffet, delaisEffets: d => { Object.assign(bruit.delais, d); programmerEffet(50); },
+  rechargerEffets: () => { bruit.liste = undefined; bruit.buffers = {}; boutonsBruits(); },
+  etat: () => ({deverrouille: etat.deverrouille, ouvert: etat.ouvert, voixEnCours: etat.voixEnCours, courant: etat.courant, musique: etat.musiqueVoulue, messages: messages().map(m => m.id), absent: etat.absent, enAttente: etat.enAttente, appel: etat.appel ? etat.appel.phase : null, appelId: etat.appel?.id || null, manques: [...etat.manques], sonnerie: etat.sonnerie, effets: [...bruit.joues], effetsPossibles: [...EFFETS]})};
 })();
