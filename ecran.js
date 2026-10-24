@@ -2,6 +2,9 @@
 (()=>{
  const ENDPOINT='https://serteksa.ddns.net/webhook/tu-etais-la/ecran';
  const ADMIN_ENDPOINT='https://serteksa.ddns.net/webhook/tu-etais-la/organisateur';
+ // Messages spontanés : état, pause et reprise (même clé fixe que l'organisateur).
+ const CONTROLE_ENDPOINT='https://serteksa.ddns.net/webhook/tu-etais-la/controle';
+ let pauseMessages=null;
  const $=id=>document.getElementById(id),storageKey='tu-etais-la-ecran-v1';
  const adminStorageKey='tu-etais-la-organisateur-v1';
  let association=null,affaires=[],timer=null,controller=null,generation=0,loading=false;
@@ -59,6 +62,11 @@
  function connecter(partie,cle){if(!/^M[A-Z0-9]{7}$/.test(partie)||!/^[a-f0-9]{64}$/.test(cle)){$('pair-feedback').textContent='Vérifie le code de partie et la clé d’association.';return}if(adminKey)quitterAdmin();arreter();if(association?.partie!==partie)$('table').hidden=true;association={partie,cle};memoriser();$('partie').value=partie;$('cle').value=cle;etat('Connexion à la partie…');actualiser()}
  function boutonsAdmin(){
   const partie=adminData?.partie,pret=!!adminKey&&adminCertain&&!adminBusy;
+  const enCours=partie?.statut==='en_cours'&&adminData?.progression?.resolues!==5;
+  $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;
+  $('admin-pause').disabled=!pret||pauseMessages===null;
+  $('admin-pause').textContent=pauseMessages?'Reprendre les messages ▶':'Mettre en pause les messages ❚❚';
+  $('admin-pause-hint').textContent=pauseMessages===null?'Messages spontanés de Sally et de la Présence : état inconnu. Touche Actualiser.':pauseMessages?'Messages spontanés en pause : Sally et la Présence se taisent jusqu’à la reprise.':'Messages spontanés actifs : un message tous les 5 minutes environ.';
   const finie=partie?.statut==='en_cours'&&adminData?.progression?.resolues===5;
   const phase=partie?(finie?'rejouer':partie.statut==='accueil'?'accueil':'jouer'):partieTerminee?'rejouer':'preparer';
   $('game-flow').hidden=$('admin-controls').hidden;
@@ -88,6 +96,20 @@
   $('admin-key').value='';$('admin-credential-value').value='';$('admin-config-value').hidden=true;$('admin-controls').hidden=true;$('admin-access').hidden=false;$('admin-access').open=true;$('association').hidden=false;document.body.classList.remove('has-admin');
   deconnecter(message);$('admin-login-feedback').textContent=message;$('disconnect').textContent='Déconnecter l’écran';boutonsAdmin();retours=[];naviguer('table',false);
  }
+ // Lit ou change la pause des messages spontanés. Une erreur laisse l'état « inconnu » sans bloquer le reste.
+ async function controler(action){
+  const code=adminData?.partie?.code;if(!adminKey||!code||(action==='etat'&&document.hidden))return;
+  const cycle=adminCycle,aborter=new AbortController(),timeout=setTimeout(()=>aborter.abort(),15000);
+  try{
+   const response=await fetch(CONTROLE_ENDPOINT,{method:'POST',headers:{Authorization:'Bearer '+adminKey},body:new URLSearchParams({action,partie:code}),credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:aborter.signal});
+   if(cycle!==adminCycle)return;
+   const data=response.ok?await response.json():null;
+   if(cycle!==adminCycle)return;
+   if(data?.ok&&typeof data.pause==='boolean'){pauseMessages=data.pause;if(action!=='etat')$('admin-feedback').textContent=data.message||'Fait.'}
+   else{pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}
+  }catch{if(cycle===adminCycle){pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}}
+  finally{clearTimeout(timeout);if(cycle===adminCycle)boutonsAdmin()}
+ }
  async function commander(action,extra={}){
   if(!adminKey||adminBusy||(action==='etat'&&document.hidden))return;
   if(action!=='etat'&&!adminCertain){$('admin-feedback').textContent='Actualise la partie avant une nouvelle action.';return}
@@ -105,6 +127,7 @@
    adminData=data;adminCertain=true;memoriserAcces();$('admin-controls').hidden=false;$('admin-access').open=false;$('admin-access').hidden=true;$('association').hidden=true;$('admin-login-feedback').textContent='';$('disconnect').textContent='Se déconnecter';document.body.classList.add('has-admin');
    if(data.partie){association={partie:data.partie.code,cle:''};afficher(data)}else{association=null;document.body.classList.remove('is-connected');$('table').hidden=true;$('catalogue').hidden=false;etat('Organisateur connecté','live')}
    if(action!=='etat')$('admin-feedback').textContent=data.message||'Action effectuée.';
+   if(data.partie?.statut==='en_cours')controler('etat');else pauseMessages=null;
    $('freshness').textContent='Dernière synchronisation : '+new Date().toLocaleTimeString('fr-FR')+'. Actualisation toutes les 15 secondes.';
   }catch(error){if(cycle!==adminCycle)return;adminCertain=false;etat('Synchronisation interrompue','error');const message=action==='etat'?'La connexion au jeu est interrompue. Une nouvelle tentative est prévue ; tu peux aussi toucher Actualiser.':'La confirmation n’est pas arrivée. L’action peut avoir été effectuée : actualise l’état avant de réessayer.';$('admin-feedback').textContent=message;$('admin-login-feedback').textContent=message;$('freshness').textContent='État non confirmé. Les commandes sont suspendues jusqu’à la prochaine lecture réussie.';
   }finally{clearTimeout(timeout);if(cycle===adminCycle){adminBusy=false;adminController=null;boutonsAdmin();if(adminKey&&!document.hidden)adminTimer=setTimeout(()=>commander('etat'),15000)}}
@@ -119,6 +142,7 @@
  window.addEventListener('popstate',event=>{if(retours.length)retours.pop();naviguer(event.state?.jeuVue||'table',false)});
  $('admin-copy-config').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-credential-value').value);$('admin-login-feedback').textContent='Valeur copiée pour le credential n8n.'}catch{$('admin-credential-value').select();$('admin-login-feedback').textContent='Sélectionne et copie la valeur affichée.'}});
  $('admin-create').addEventListener('submit',e=>{e.preventDefault();if(!adminData?.partie)commander('creer',{nombre_joueurs:$('admin-count').value,scenario_id:$('admin-scenario').value})});
+ $('admin-pause').addEventListener('click',()=>{if(pauseMessages!==null)controler(pauseMessages?'reprendre':'pause')});
  $('admin-start').addEventListener('click',()=>{if(adminData?.partie)commander('demarrer',{partie:adminData.partie.code})});
  $('admin-stop').addEventListener('click',()=>{const code=adminData?.partie?.code;if(code&&confirm('Arrêter la partie '+code+' ? Son historique sera conservé.'))commander('fin',{partie:code})});
  $('admin-copy-invite').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-invite-url').value);$('admin-feedback').textContent='Lien d’inscription copié. Partage-le avec tes invités.'}catch{$('admin-invite-url').select();$('admin-feedback').textContent='Sélectionne et copie le lien d’inscription.'}});
