@@ -387,6 +387,8 @@
   rendre();
  });
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
+ // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 2 : appel de Sally, bruits, sons d’événements, fichiers wav.';
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher,
   delais: ms => { etat.delaiSonnerie = ms; },
   effet: jouerEffet, delaisEffets: d => { Object.assign(bruit.delais, d); programmerEffet(50); },

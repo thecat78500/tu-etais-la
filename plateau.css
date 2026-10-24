@@ -143,3 +143,4 @@ body.plateau-ouvert{overflow:hidden}
 .pl-essai summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font:400 13px/1 var(--etiquette);letter-spacing:.14em;text-transform:uppercase;color:var(--papier-doux)}
 #pl-bruits{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 #pl-bruits button{min-height:52px;padding:0 16px;border:1px solid var(--trait);background:rgba(239,230,210,.04);font:400 14px/1 var(--etiquette);letter-spacing:.1em;text-transform:uppercase}
+.pl-version{margin:14px 0 0;font:400 11px/1.4 var(--etiquette);letter-spacing:.08em;color:var(--papier-doux);opacity:.7}
