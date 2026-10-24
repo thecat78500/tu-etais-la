@@ -17,8 +17,13 @@
  const voix = $('pl-audio-voix'), musique = $('pl-audio-musique');
  const etat = {deverrouille: false, ouvert: false, ctx: null, bus: null, code: null, resolues: 0, data: null, affaires: null,
   musiqueVoulue: true, volume: 0.6, voixEnCours: false, courant: null, enAttente: null, jeton: 0, absent: false, texteActuel: '',
-  appel: null, sonnerie: false, delaiSonnerie: 40000, minuterie: null, chrono: null, manques: []};
- try { etat.musiqueVoulue = localStorage.getItem('tu-etais-la-musique') !== 'off'; const v = Number(localStorage.getItem('tu-etais-la-volume')); if(v >= 0.1 && v <= 1) etat.volume = v; } catch {}
+  appel: null, sonnerie: false, delaiSonnerie: 40000, minuterie: null, chrono: null, manques: [],
+  musiqueNiveau: 0.5, effetEnCours: 0, jetonEffet: 0};
+ try {
+  etat.musiqueVoulue = localStorage.getItem('tu-etais-la-musique') !== 'off';
+  const v = Number(localStorage.getItem('tu-etais-la-volume')); if(v >= 0.1 && v <= 1) etat.volume = v;
+  const m = Number(localStorage.getItem('tu-etais-la-musique-niveau')); if(m >= 0.05 && m <= 1) etat.musiqueNiveau = m;
+ } catch {}
  const lireSession = cle => { try { return JSON.parse(sessionStorage.getItem(cle) || 'null'); } catch { return null; } };
  const ecrireSession = (cle, valeur) => { try { sessionStorage.setItem(cle, JSON.stringify(valeur)); } catch {} };
 
@@ -70,7 +75,7 @@
  }
  function sortieEffets(){
   if(!bruit.sortie){ bruit.sortie = etat.ctx.createGain(); bruit.sortie.connect(etat.ctx.destination); }
-  bruit.sortie.gain.value = 0.9 * etat.volume; return bruit.sortie;
+  bruit.sortie.gain.value = etat.volume; return bruit.sortie;
  }
  const enveloppe = (g, t, attaque, duree, niveau) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(niveau, t + attaque); g.gain.exponentialRampToValueAtTime(0.0001, t + duree); };
  function coup(t, freq, niveau, duree = 0.28){
@@ -125,9 +130,14 @@
   }
   if(!tampon && !SYNTHESE[id]) return; // nom inconnu et fichier absent : rien à jouer
   bruit.joues.push(id);
+  // La musique s'efface un peu pendant le bruit pour qu'on l'entende bien.
+  const duree = tampon ? tampon.duration : (DUREES[id] || 3);
+  const jeton = ++etat.jetonEffet; etat.effetEnCours = 1; regler();
+  setTimeout(() => { if(jeton === etat.jetonEffet){ etat.effetEnCours = 0; regler(); } }, (duree + 0.4) * 1000);
   if(tampon){ const s = etat.ctx.createBufferSource(); s.buffer = tampon; s.connect(sortieEffets()); s.start(); return; }
   SYNTHESE[id]?.(etat.ctx.currentTime + 0.05);
  }
+ const DUREES = {craquement: 1.4, coups: 2, pas: 4, vent: 4, murmure: 2.3, horloge: 4.5, porte: 2.2, cloche: 4.5, 'sceau-ouvert': 2.6, 'indice-decouvert': 1.8};
  // Liste facultative assets/audio/effets/effets.json : les sons que vous avez déposés, au choix pour tous les moments
  // ([« a », « b »]) ou par moment ({ « debut »: […], « milieu »: […], « fin »: […] }). Sans liste, les huit bruits de base sont utilisés.
  async function listeEffets(){
@@ -160,9 +170,10 @@
   }, delai ?? min + Math.random() * (max - min));
  }
  let musiqueActive = false;
- function volumeEffectif(){ return etat.volume * (etat.voixEnCours || etat.sonnerie ? 0.28 : 1); }
+ // La musique a son propre niveau (curseur « Musique ») et baisse pendant une voix, une sonnerie ou un bruit.
+ function volumeEffectif(){ return etat.volume * etat.musiqueNiveau * (etat.voixEnCours || etat.sonnerie ? 0.28 : etat.effetEnCours ? 0.5 : 1); }
  function regler(){
-  if(bruit.sortie) bruit.sortie.gain.value = 0.9 * etat.volume;
+  if(bruit.sortie) bruit.sortie.gain.value = etat.volume;
   if(etat.bus && etat.ctx) etat.bus.gain.setTargetAtTime(volumeEffectif(), etat.ctx.currentTime, 0.35);
   else musique.volume = Math.min(1, volumeEffectif());
  }
@@ -298,7 +309,7 @@
   bouton.querySelector('.pl-bouton-texte').textContent = etat.voixEnCours ? 'Arrêter la voix' : 'Réécouter';
   bouton.setAttribute('aria-label', etat.voixEnCours ? 'Arrêter la voix' : 'Réécouter : ' + dernier.titre);
   const musiqueBtn = $('pl-musique'); musiqueBtn.setAttribute('aria-pressed', String(etat.musiqueVoulue)); musiqueBtn.querySelector('.pl-bouton-texte').textContent = etat.musiqueVoulue ? 'Ambiance' : 'Ambiance coupée';
-  $('pl-volume').value = String(etat.volume);
+  $('pl-volume').value = String(etat.volume); $('pl-musique-niveau').value = String(etat.musiqueNiveau);
   // Appel entrant : sonne, se décroche, se raccroche. Rien ne se joue sans décrocher.
   const appel = etat.appel, appelMessage = appel ? messageDe(appel.id) : null;
   $('pl-appel').hidden = !appel;
@@ -388,7 +399,8 @@
  });
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 2 : appel de Sally, bruits, sons d’événements, fichiers wav.';
+ $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 3 : appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique.';
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher,
   delais: ms => { etat.delaiSonnerie = ms; },
   effet: jouerEffet, delaisEffets: d => { Object.assign(bruit.delais, d); programmerEffet(50); },

@@ -144,3 +144,8 @@ body.plateau-ouvert{overflow:hidden}
 #pl-bruits{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 #pl-bruits button{min-height:52px;padding:0 16px;border:1px solid var(--trait);background:rgba(239,230,210,.04);font:400 14px/1 var(--etiquette);letter-spacing:.1em;text-transform:uppercase}
 .pl-version{margin:14px 0 0;font:400 11px/1.4 var(--etiquette);letter-spacing:.08em;color:var(--papier-doux);opacity:.7}
+/* Deux curseurs : le volume général et le niveau de la musique par rapport aux bruits et aux voix. */
+.pl-volume{gap:4px;padding:8px 16px}
+.pl-curseur{display:grid;grid-template-columns:5.2em minmax(0,1fr);align-items:center;gap:10px}
+.pl-curseur label{font:400 12px/1 var(--etiquette);letter-spacing:.14em;color:var(--papier-doux);text-transform:uppercase}
+.pl-curseur input{width:100%;height:32px;accent-color:var(--braise);background:transparent}

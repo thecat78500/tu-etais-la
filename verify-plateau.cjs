@@ -84,6 +84,9 @@ const CLE='f'.repeat(64);
   await page.locator('#pl-musique').click();assert.equal(await page.locator('#pl-musique').getAttribute('aria-pressed'),'false');
   await page.locator('#pl-musique').click();assert.equal(await page.locator('#pl-musique').getAttribute('aria-pressed'),'true');
   await page.locator('#pl-volume').fill('0.3');assert.equal(await page.evaluate(()=>localStorage.getItem('tu-etais-la-volume')),'0.3');
+  // Niveau de la musique par rapport aux bruits et aux voix : curseur propre, mémorisé.
+  assert.equal(await page.locator('#pl-musique-niveau').inputValue(),'0.5');
+  await page.locator('#pl-musique-niveau').fill('0.2');assert.equal(await page.evaluate(()=>localStorage.getItem('tu-etais-la-musique-niveau')),'0.2');
   // Bruits de la maison : un bruit déclenché à la main, puis des bruits aléatoires, jamais par-dessus une voix.
   await page.evaluate(()=>window.Plateau.effet('craquement'));
   assert((await page.evaluate(()=>window.Plateau.etat().effets)).includes('craquement'));
