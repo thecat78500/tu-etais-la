@@ -63,7 +63,7 @@
  function boutonsAdmin(){
   const partie=adminData?.partie,pret=!!adminKey&&adminCertain&&!adminBusy;
   const enCours=partie?.statut==='en_cours'&&adminData?.progression?.resolues!==5;
-  $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;
+  $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;$('ouvrir-plateau').hidden=!enCours;
   $('admin-pause').disabled=!pret||pauseMessages===null;
   $('admin-pause').textContent=pauseMessages?'Reprendre les messages ▶':'Mettre en pause les messages ❚❚';
   $('admin-pause-hint').textContent=pauseMessages===null?'Messages spontanés de Sally et de la Présence : état inconnu. Touche Actualiser.':pauseMessages?'Messages spontanés en pause : Sally et la Présence se taisent jusqu’à la reprise.':'Messages spontanés actifs : un message tous les 5 minutes environ.';
@@ -91,6 +91,7 @@
   }
  }
  function quitterAdmin(message='Accès organisateur fermé'){
+  window.Plateau?.fermer();window.Plateau?.mettreAJour(null);
   adminCycle++;clearTimeout(adminTimer);adminController?.abort();adminController=null;adminKey='';adminData=null;adminCertain=false;adminBusy=false;
   try{localStorage.removeItem(adminStorageKey)}catch{}$('admin-remember').checked=false;
   $('admin-key').value='';$('admin-credential-value').value='';$('admin-config-value').hidden=true;$('admin-controls').hidden=true;$('admin-access').hidden=false;$('admin-access').open=true;$('association').hidden=false;document.body.classList.remove('has-admin');
@@ -128,6 +129,9 @@
    if(data.partie){association={partie:data.partie.code,cle:''};afficher(data)}else{association=null;document.body.classList.remove('is-connected');$('table').hidden=true;$('catalogue').hidden=false;etat('Organisateur connecté','live')}
    if(action!=='etat')$('admin-feedback').textContent=data.message||'Action effectuée.';
    if(data.partie?.statut==='en_cours')controler('etat');else pauseMessages=null;
+   // Plateau de jeu : reçoit l'état public, diffuse l'accueil au lancement et un message à chaque sceau ouvert.
+   window.Plateau?.mettreAJour(data);
+   if(action==='demarrer'&&data.partie?.statut==='en_cours')window.Plateau?.ouvrir();
    $('freshness').textContent='Dernière synchronisation : '+new Date().toLocaleTimeString('fr-FR')+'. Actualisation toutes les 15 secondes.';
   }catch(error){if(cycle!==adminCycle)return;adminCertain=false;etat('Synchronisation interrompue','error');const message=action==='etat'?'La connexion au jeu est interrompue. Une nouvelle tentative est prévue ; tu peux aussi toucher Actualiser.':'La confirmation n’est pas arrivée. L’action peut avoir été effectuée : actualise l’état avant de réessayer.';$('admin-feedback').textContent=message;$('admin-login-feedback').textContent=message;$('freshness').textContent='État non confirmé. Les commandes sont suspendues jusqu’à la prochaine lecture réussie.';
   }finally{clearTimeout(timeout);if(cycle===adminCycle){adminBusy=false;adminController=null;boutonsAdmin();if(adminKey&&!document.hidden)adminTimer=setTimeout(()=>commander('etat'),15000)}}
@@ -143,7 +147,9 @@
  $('admin-copy-config').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-credential-value').value);$('admin-login-feedback').textContent='Valeur copiée pour le credential n8n.'}catch{$('admin-credential-value').select();$('admin-login-feedback').textContent='Sélectionne et copie la valeur affichée.'}});
  $('admin-create').addEventListener('submit',e=>{e.preventDefault();if(!adminData?.partie)commander('creer',{nombre_joueurs:$('admin-count').value,scenario_id:$('admin-scenario').value})});
  $('admin-pause').addEventListener('click',()=>{if(pauseMessages!==null)controler(pauseMessages?'reprendre':'pause')});
- $('admin-start').addEventListener('click',()=>{if(adminData?.partie)commander('demarrer',{partie:adminData.partie.code})});
+ // Le toucher sur « Lancer la partie » autorise le son de l'iPad : l'accueil peut alors démarrer tout seul.
+ $('admin-start').addEventListener('click',()=>{window.Plateau?.deverrouiller();if(adminData?.partie)commander('demarrer',{partie:adminData.partie.code})});
+ $('ouvrir-plateau').addEventListener('click',()=>{window.Plateau?.deverrouiller();window.Plateau?.ouvrir()});
  $('admin-stop').addEventListener('click',()=>{const code=adminData?.partie?.code;if(code&&confirm('Arrêter la partie '+code+' ? Son historique sera conservé.'))commander('fin',{partie:code})});
  $('admin-copy-invite').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-invite-url').value);$('admin-feedback').textContent='Lien d’inscription copié. Partage-le avec tes invités.'}catch{$('admin-invite-url').select();$('admin-feedback').textContent='Sélectionne et copie le lien d’inscription.'}});
  $('admin-logout').addEventListener('click',()=>quitterAdmin());
