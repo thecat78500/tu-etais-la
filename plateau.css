@@ -177,3 +177,32 @@ body.plateau-ouvert{overflow:hidden}
 #pl-proximite li{width:9px;height:24px;border-radius:5px;border:1px solid var(--trait);transition:background .6s,box-shadow .6s}
 #pl-proximite li.plein{background:linear-gradient(var(--rouille),#3a1410);border-color:var(--rouille);box-shadow:0 0 12px rgba(190,70,50,.5)}
 .pl-annonce[data-type="approche"]{border-color:var(--rouille)}
+
+/* Les portes restent des signes à recouper ; aucun bouton de vote sur l'écran commun. */
+#pl-portes[hidden],#pl-portes-fin[hidden]{display:none}
+.pl-portes{margin-top:18px}
+#pl-portes-phase{color:var(--braise-vive);font-size:16px;margin:0 0 14px}
+#pl-portes-liste{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0}
+#pl-portes-liste li{min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--trait);border-radius:44% 44% 0 0;background:rgba(239,230,210,.025)}
+#pl-portes-liste li>span{font-size:38px;color:var(--braise);line-height:1.2}
+#pl-portes-liste strong{font-size:15px;font-weight:400}
+#pl-portes-liste .hors-vote{opacity:.3}
+#pl-portes-liste .choisie{border-color:var(--braise-vive);background:rgba(224,164,90,.13)}
+#pl-portes-consigne{font-size:16px;line-height:1.5;color:var(--papier-doux)}
+#pl-portes-revelation{list-style:none;padding:0;font-size:15px;line-height:1.6}
+#pl-portes-revelation li{padding:8px 0;border-bottom:1px solid var(--trait)}
+#pl-portes-revelation li>b{display:block;color:var(--braise-vive);font-weight:400}
+@media(max-width:600px){#pl-portes-liste{gap:4px}#pl-portes-liste li{min-height:88px}#pl-portes-liste strong{font-size:12px}#pl-portes-liste li>span{font-size:30px}}
+/* À la fin, la place revient au groupe et à ses objectifs, plutôt qu'à la photographie. */
+.pl-fin .pl-vue{display:none}
+.pl-fin .pl-centre{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+.pl-fin #pl-titre{font-size:clamp(28px,3.3vw,42px)}
+.pl-fin #pl-enonce{font-size:17px;margin-top:8px}
+.pl-fin #pl-sceaux,.pl-fin #pl-carnet,.pl-fin .pl-sceau>section:last-child{display:none}
+.pl-fin #pl-portes-liste li{min-height:64px;border-radius:30px 30px 0 0}
+.pl-fin #pl-portes-liste li>span{font-size:28px}
+.pl-fin #pl-portes-phase{margin-bottom:8px}
+.pl-fin #pl-portes-consigne{margin:6px 0}
+.pl-fin #pl-portes-fin h3{margin-top:10px}
+.pl-fin #pl-portes-revelation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0}
+@media(max-width:600px){.pl-fin #pl-portes-revelation{grid-template-columns:1fr}}

@@ -1,6 +1,6 @@
 'use strict';
 // Plateau de jeu de l'iPad : écran simple, sans défilement, avec ambiance sonore et voix de la maison réécoutables.
-// Ne reçoit que l'état public de la partie (aucun rôle, camp ni indice). Aucune clé n'est lue ici.
+// État public uniquement ; rôles et camps arrivent après la révélation finale. Aucun indice privé ni clé.
 (() => {
  const $ = id => document.getElementById(id);
  const ROMAINS = ['I', 'II', 'III', 'IV', 'V'];
@@ -31,7 +31,10 @@
  // Messages de la maison déjà diffusés sur cette tablette : toujours l'accueil, puis un message par sceau ouvert.
  function messages(){
   const liste = [{id: 'accueil', titre: 'Le message d’accueil', sources: SOURCES.accueil}];
-  for(let n = 1; n <= Math.min(etat.resolues, 5); n++) liste.push({id: 'sceau-' + n, titre: `Le sceau ${ROMAINS[n - 1]} cède`, sources: SOURCES.sceau});
+  for(let n = 1; n <= Math.min(etat.resolues, 5); n++){
+   const fin=n===5&&etat.data?.progression?.portes?.resultat;
+   liste.push({id:'sceau-'+n,titre:fin?'La porte de '+fin.porte+ ' s’ouvre':`Le sceau ${ROMAINS[n-1]} cède`,sources:fin?['wav','mp3'].map(ext=>({src:`assets/audio/fin-porte-${fin.issue}.${ext}`,texte:fin.texte})):SOURCES.sceau});
+  }
   return liste;
  }
  const messageDe = id => messages().find(m => m.id === id);
@@ -344,6 +347,24 @@
   $('pl-erreurs-points').setAttribute('aria-label', 'Erreurs sur cette énigme : ' + vers + ' sur 3 avant que l’entité s’approche');
   $('pl-proximite').innerHTML = [0, 1, 2, 3, 4].map(i => '<li class="' + (i < proche ? 'plein' : '') + '"></li>').join('');
   $('pl-proximite').setAttribute('aria-label', 'Proximité de l’entité : ' + proche + ' sur 5');
+  const portes=prog?.portes;
+  ov.classList.toggle('pl-fin',portes?.phase==='fin');
+  $('pl-portes').hidden=!portes;
+  document.querySelector('.pl-conseil').hidden=!!portes;
+  if(portes){
+   const fin=portes.phase==='fin', vote=['vote','vote_2'].includes(portes.phase);
+   const labels={attente:'Le débat va s’ouvrir',debat:'Le débat est ouvert',vote:'Vote secret',debat_egalite:'Égalité : nouveau débat',vote_2:'Second vote secret',fin:'La porte est ouverte'};
+   $('pl-titre').textContent=fin?portes.resultat.texte:'Les cinq portes';
+   $('pl-enonce').textContent=fin?'Les souvenirs peuvent enfin être révélés.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
+   $('pl-erreurs').hidden=true;
+   const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
+   $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
+   const signes={Lune:'☾',Cendre:'⋰',Ronce:'♧',Verre:'◇',Seuil:'⊓'};
+   $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span aria-hidden="true">${signes[s]||''}</span><strong>${echapper(s)}</strong></li>`).join('');
+   $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Votez en privé auprès de Sally : « Je vote la porte de la Ronce ».':'Comparez vos exclusions. Dites à Sally « prêt à voter » quand vous êtes prêts.';
+   $('pl-portes-fin').hidden=!fin;
+   $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
+  }
   $('pl-carnet').hidden = !(prog?.carnet?.length);
   $('pl-carnet-liste').innerHTML = (prog?.carnet || []).map(e => `<li><span>${ROMAINS[e.etape - 1]}</span> ${echapper(e.titre)} <b>${echapper(e.reponse)}</b></li>`).join('');
   $('pl-joueurs').innerHTML = (data?.joueurs || []).map(j => `<li>${echapper(j.prenom)}</li>`).join('');
@@ -464,7 +485,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 5 : appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 6 : cinq portes, vote secret, résultat et révélation, appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

@@ -216,6 +216,24 @@ const CLE='f'.repeat(64);
   await page.evaluate(()=>window.Plateau.ouvrir());await page.waitForFunction(()=>!document.getElementById('plateau').hidden);
   assert(await page.locator('#pl-invite').isVisible(),'invitation à réveiller la maison');assert(await page.locator('#pl-appel').isHidden());
   await page.locator('#pl-activer').click();assert(await page.locator('#pl-invite').isHidden());
+  // Cinq portes : uniquement la participation avant la fin, puis révélation lisible et texte échappé.
+  const portes={phase:'vote',jusqu:Date.now()+180000,symboles:['Lune','Cendre','Ronce','Verre','Seuil'],candidats:['Lune','Cendre','Ronce','Verre','Seuil'],prets:4,votants:2,total:4};
+  const donneesPortes={partie:{code:'MPLATEAU',scenario_id:8,nombre_joueurs:4,statut:'en_cours'},joueurs:[{prenom:'David'}],progression:{initialise:true,resolues:4,total:5,active:{etape:5,titre:'Les cinq portes',enonce:'Recoupez vos exclusions.'},carnet:[],portes}};
+  await page.evaluate(d=>{sessionStorage.setItem('tu-etais-la-sceaux-MPLATEAU','5');window.Plateau.mettreAJour(d)},donneesPortes);
+  assert(await page.locator('#pl-portes').isVisible());assert.equal(await page.locator('#pl-portes-liste li').count(),5);
+  assert((await page.locator('#pl-portes-phase').innerText()).includes('2/4 ont voté'));assert(await page.locator('#pl-portes-fin').isHidden());
+  for(const [nom,width,height]of [['paysage',1194,834],['portrait',834,1194]]){
+   await page.setViewportSize({width,height});
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.getElementById('plateau').scrollWidth<=innerWidth));
+   await page.waitForTimeout(1100);await page.screenshot({path:path.join(root,'captures','portes-'+nom+'.png')});
+  }
+  portes.phase='fin';portes.resultat={porte:'Ronce',issue:1,texte:'Sally revient. L’entité reste dehors.'};portes.revelation=Array.from({length:10},(_,i)=>({prenom:i===0?'<img src=x onerror=alert(1)>':'Joueur '+(i+1),role:'Gardien',camp:i<7?'gentil':'ambigu',objectif:i<7?null:'Verre',victoire:i<7}));
+  donneesPortes.progression.active=null;donneesPortes.progression.resolues=5;
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert(await page.locator('#pl-portes-fin').isVisible());assert.equal(await page.locator('#pl-portes-revelation img').count(),0);
+  assert((await page.locator('#pl-portes-revelation').innerText()).includes('Victoire'));
+  assert.equal(await page.locator('#pl-portes-liste .choisie strong').innerText(),'Ronce');
+  await page.waitForTimeout(1100);await page.screenshot({path:path.join(root,'captures','portes-resultat.png')});
   assert.deepEqual(erreurs,[]);
   console.log('PASS plateau : accueil automatique au lancement (repli si le fichier manque), texte lisible, réécoute et liste des voix, ambiance et volume, voix à chaque sceau sans répétition, carnet, sans défilement en paysage/portrait/iPad Pro, boutons tactiles, retour à la régie, appel entrant qu’il faut décrocher (sonnerie, décrocher, raccrocher, ignorer, appel manqué rappelable, délai sans réponse), invitation si le son n’est pas déverrouillé.');
  }finally{await browser.close();serveur.close()}
