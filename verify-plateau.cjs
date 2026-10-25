@@ -13,7 +13,7 @@ const CLE='f'.repeat(64);
   const context=await browser.newContext({viewport:{width:1194,height:834}}),page=await context.newPage(),erreurs=[];page.setDefaultTimeout(10000);
   page.on('pageerror',e=>erreurs.push(e.message));
   // Lecture simulée : l'accueil dédié « manque » (repli sur l'ancienne introduction), le reste se lit.
-  await page.addInitScript(()=>{window.__lectures=[];HTMLMediaElement.prototype.play=function(){const src=this.getAttribute('src')||'';if(src.startsWith('data:'))return Promise.resolve();window.__lectures.push((this.dataset.role||'?')+':'+src);if(src.includes('ACCUEIL_SALLY'))return Promise.reject(new DOMException('absent','NotSupportedError'));return Promise.resolve()};HTMLMediaElement.prototype.pause=function(){}});
+  await page.addInitScript(()=>{window.__lectures=[];HTMLMediaElement.prototype.play=function(){const src=this.getAttribute('src')||'';if(src.startsWith('data:'))return Promise.resolve();window.__lectures.push((this.dataset.role||'?')+':'+src);if(src.includes('ACCUEIL_SALLY')||(window.__absenceFins&&src.includes('fin-porte-')))return Promise.reject(new DOMException('absent','NotSupportedError'));return Promise.resolve()};HTMLMediaElement.prototype.pause=function(){}});
   let partie=null,resolues=0;const CARNET=[{etape:1,titre:'Le nom effacé',reponse:'ALMA'},{etape:2,titre:'Les quatre marques',reponse:'LUNE CENDRE RONCE VERRE'}];
   const etat=()=>({ok:true,partie,joueurs:partie?[{prenom:'David'},{prenom:'Alice'},{prenom:'Bob'},{prenom:'Claire'}].slice(0,partie.statut==='accueil'?1:4):[],
    progression:{initialise:partie?.statut==='en_cours',resolues,total:5,active:partie?.statut==='en_cours'&&resolues<5?{etape:resolues+1,titre:['Le nom effacé','Les quatre marques','L’objet d’ancrage','L’heure derrière le mur','La formule du seuil'][resolues],enonce:'Affaire 8 — La clé n’ouvrait pas cette porte\nJ’ai essayé de vous laisser une phrase entière.\n\nQuatre fragments portent les positions 1 à 4 d’un nom gravé sous le plâtre. Quel est ce nom ?\n\nChacun peut me demander « redonne-moi mon indice ». Après discussion, dites-moi « je propose… ».'}:null,carnet:CARNET.slice(0,Math.min(resolues,2))}});
@@ -223,11 +223,14 @@ const CLE='f'.repeat(64);
   assert(await page.locator('#pl-portes').isVisible());assert.equal(await page.locator('#pl-portes-liste li').count(),5);
   await page.waitForFunction(()=>{const images=[...document.querySelectorAll('#pl-portes-liste img')];return images.length===5&&images.every(i=>i.complete&&i.naturalWidth>0)});
   assert((await page.locator('#pl-portes-phase').innerText()).includes('2/4 ont voté'));assert(await page.locator('#pl-portes-fin').isHidden());
+  assert(await page.locator('#pl-fin-scene').isHidden());assert.equal(await page.locator('#plateau').getAttribute('data-fin'),null,'aucun thème de fin pendant le vote');
   for(const [nom,width,height]of [['paysage',1194,834],['portrait',834,1194]]){
    await page.setViewportSize({width,height});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.getElementById('plateau').scrollWidth<=innerWidth));
    await page.waitForTimeout(1100);await page.screenshot({path:path.join(root,'captures','portes-'+nom+'.png')});
   }
+  // Les conclusions sont couvertes séparément ci-dessous ; pas d'appel pendant les captures des thèmes.
+  await page.evaluate(()=>{const key='tu-etais-la-voix-MPLATEAU';sessionStorage.setItem(key,JSON.stringify([...JSON.parse(sessionStorage.getItem(key)||'[]'),...[1,2,3,4,5].map(n=>'conclusion-'+n)]))});
   portes.phase='fin';portes.resultat={porte:'Ronce',issue:1,texte:'Sally revient. L’entité reste dehors.'};portes.revelation=Array.from({length:10},(_,i)=>({prenom:i===0?'<img src=x onerror=alert(1)>':'Joueur '+(i+1),role:'Gardien',camp:i<7?'gentil':'ambigu',objectif:i<7?null:'Verre',victoire:i<7}));
   donneesPortes.progression.active=null;donneesPortes.progression.resolues=5;
   await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
@@ -235,6 +238,72 @@ const CLE='f'.repeat(64);
   assert((await page.locator('#pl-portes-revelation').innerText()).includes('Victoire'));
   assert.equal(await page.locator('#pl-portes-liste .choisie strong').innerText(),'Ronce');
   await page.waitForTimeout(1100);await page.screenshot({path:path.join(root,'captures','portes-resultat.png')});
+  // Les cinq atmosphères suivent l'issue ; les gagnants suivent exclusivement la révélation du serveur.
+  const fins=[
+   {issue:1,theme:'aube',texte:'Sally revient. L’entité reste dehors.',victoire:'Victoire des gentils',vainqueurs:['gentil']},
+   {issue:2,theme:'entite',texte:'L’entité franchit le passage.',victoire:'Victoire de l’entité',vainqueurs:['mechant']},
+   {issue:3,theme:'scellee',texte:'L’entité est enfermée. Sally reste coincée avec elle.',victoire:'Victoire de Tara',vainqueurs:['ambigu']},
+   {issue:4,theme:'piege',texte:'Le piège se referme. Vous restez tous enfermés.',victoire:'Victoire de l’entité et de Tara',vainqueurs:['mechant','ambigu']},
+   {issue:5,theme:'immobile',texte:'Le passage échoue. Rien ne change.',victoire:'Aucun vainqueur',vainqueurs:[]}
+  ];
+  for(const fin of fins){
+   portes.resultat={porte:'Ronce',issue:fin.issue,texte:fin.texte};
+   portes.revelation=[{prenom:'David',role:'Gardien',camp:'mechant',victoire:fin.vainqueurs.includes('mechant')},{prenom:'Lana',role:'Veilleur',camp:'gentil',victoire:fin.vainqueurs.includes('gentil')},{prenom:'Tara',role:'Médium',camp:'ambigu',objectif:'Ronce',victoire:fin.vainqueurs.includes('ambigu')}];
+   await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+   assert.equal(await page.locator('#plateau').getAttribute('data-fin'),fin.theme);
+   assert.equal(await page.locator('#pl-fin-victoire').innerText(),fin.victoire);
+   assert.equal(await page.locator('#pl-portes-revelation [data-victoire="oui"]').count(),fin.vainqueurs.length);
+   assert.equal(await page.locator('#pl-fin-scene img').getAttribute('src'),'assets/portes/porte-ronce.png');
+   for(const [nom,width,height]of [['paysage',1194,834],['portrait',834,1194]]){
+    await page.setViewportSize({width,height});
+    await page.waitForTimeout(900);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.getElementById('plateau').scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(root,'captures',`fin-${fin.issue}-${nom}.png`)});
+   }
+  }
+  // Une issue 5 peut aussi réaliser l'objectif d'un ambigu : ne jamais afficher « aucun vainqueur » par défaut.
+  portes.revelation[2].victoire=true;await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert.equal(await page.locator('#pl-fin-victoire').innerText(),'Victoire de Tara');
+  await page.locator('#pl-fin-details').click();assert.equal(await page.evaluate(()=>document.activeElement?.textContent),'Ce que chacun cherchait');
+  // Revenir à un vote nettoie entièrement le thème et les révélations finales.
+  portes.phase='vote';delete portes.resultat;delete portes.revelation;donneesPortes.progression.resolues=4;donneesPortes.progression.active={etape:5,titre:'Les cinq portes',enonce:'Recoupez vos exclusions.'};
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert(await page.locator('#pl-fin-scene').isHidden());assert.equal(await page.locator('#plateau').getAttribute('data-fin'),null);
+  assert.equal(await page.locator('#pl-portes-revelation li').count(),0);
+  // Les mises à jour de fond reçoivent désormais l'état du scénario testé.
+  await page.route('https://serteksa.ddns.net/webhook/tu-etais-la/organisateur',r=>r.fulfill({status:200,contentType:'application/json',headers:entetes,body:JSON.stringify({ok:true,message:'ok',...donneesPortes})}));
+  await page.evaluate(()=>{window.__absenceFins=true});
+  for(const issue of [1,2,3,4,5]){
+   donneesPortes.partie.code='MFIN000'+issue;donneesPortes.progression.active=null;donneesPortes.progression.resolues=5;
+   portes.phase='fin';portes.resultat={porte:'Ronce',issue,texte:fins.find(f=>f.issue===issue).texte};portes.revelation=[];
+   const nom=[2,4].includes(issue)?'L’entité':'Sally',id='conclusion-'+issue;
+   const avant=(await page.evaluate(()=>window.__lectures)).filter(s=>s.includes('voix:assets/audio/fin-porte-'+issue)).length;
+   await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+   await page.waitForFunction(id=>window.Plateau.etat().appelId===id&&window.Plateau.etat().appel==='sonne',id);
+   assert.equal(await page.locator('.pl-appel-nom').innerText(),nom);
+   assert.equal(await page.locator('#pl-appel').getAttribute('data-appelant'),nom==='Sally'?'sally':'entite');
+   assert.equal((await page.evaluate(()=>window.__lectures)).filter(s=>s.includes('voix:assets/audio/fin-porte-'+issue)).length,avant,'pas de lecture sans décrocher');
+   if(issue===1||issue===2){await page.setViewportSize({width:1194,height:834});await page.screenshot({path:path.join(root,'captures',`appel-conclusion-${issue}.png`)})}
+   await page.locator('#pl-appel-decrocher').click();await page.waitForFunction(()=>window.Plateau.etat().absent);
+   assert.equal((await page.evaluate(()=>window.Plateau.etat())).appel,'en-ligne');
+   assert((await page.locator('#pl-appel-texte').innerText()).length>200,'conclusion complète disponible sans fichier audio');
+   const lecturesFin=await page.evaluate(()=>window.__lectures);
+   assert(lecturesFin.some(s=>s.includes(`voix:assets/audio/fin-porte-${issue}.wav`)));assert(lecturesFin.some(s=>s.includes(`voix:assets/audio/fin-porte-${issue}.mp3`)));
+   await page.locator('#pl-appel-raccrocher').click();await page.waitForFunction(()=>window.Plateau.etat().appel===null);
+   await page.evaluate(d=>{window.Plateau.mettreAJour(d);window.Plateau.fermer();window.Plateau.ouvrir()},donneesPortes);
+   assert.equal((await page.evaluate(()=>window.Plateau.etat())).appel,null,'pas de répétition automatique après actualisation ou retour au plateau');
+   await page.locator('#pl-fin-appel').click();assert.equal((await page.evaluate(()=>window.Plateau.etat())).appelId,id);
+   await page.locator('#pl-appel-ignorer').click();assert((await page.evaluate(()=>window.Plateau.etat())).manques.includes(id));
+   assert((await page.locator('#pl-manques-texte').innerText()).includes(nom==='Sally'?'Sally':'entité'));
+   await page.locator('#pl-manques').click();await page.locator(`[data-message="${id}"]`).click();
+   await page.waitForFunction(()=>window.Plateau.etat().absent);assert.equal(await page.locator('.pl-appel-nom').innerText(),nom);
+   await page.locator('#pl-appel-raccrocher').click();await page.waitForFunction(()=>window.Plateau.etat().appel===null);
+  }
+  // Un appel de conclusion ne se perd pas si la fin arrive pendant une autre transmission.
+  donneesPortes.partie.code='MFIN9999';donneesPortes.progression.resolues=0;donneesPortes.progression.portes=null;
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);assert.equal((await page.evaluate(()=>window.Plateau.etat())).appelId,'accueil');
+  donneesPortes.progression.resolues=5;donneesPortes.progression.portes={...portes,phase:'fin',resultat:{porte:'Ronce',issue:2,texte:'L’entité franchit le passage.'}};
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);assert.equal((await page.evaluate(()=>window.Plateau.etat())).appelId,'conclusion-2');
   assert.deepEqual(erreurs,[]);
   console.log('PASS plateau : accueil automatique au lancement (repli si le fichier manque), texte lisible, réécoute et liste des voix, ambiance et volume, voix à chaque sceau sans répétition, carnet, sans défilement en paysage/portrait/iPad Pro, boutons tactiles, retour à la régie, appel entrant qu’il faut décrocher (sonnerie, décrocher, raccrocher, ignorer, appel manqué rappelable, délai sans réponse), invitation si le son n’est pas déverrouillé.');
  }finally{await browser.close();serveur.close()}
