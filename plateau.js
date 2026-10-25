@@ -29,15 +29,56 @@
  const ecrireSession = (cle, valeur) => { try { sessionStorage.setItem(cle, JSON.stringify(valeur)); } catch {} };
 
  // Messages de la maison déjà diffusés sur cette tablette : toujours l'accueil, puis un message par sceau ouvert.
+ const CONCLUSIONS={
+  1:{appelant:'sally',titre:'Sally — Dehors, enfin',texte:'Vous m’entendez ? C’est moi… Sally. Je suis dehors ! Il y a de l’air, de la lumière… Oh, vous avez réussi ! J’avais tellement peur de ne plus jamais sortir. La maison est derrière moi. Lui, il est resté à l’intérieur. Je ne sais même pas quoi vous dire… Merci. Merci d’avoir continué à me chercher, d’avoir tenu bon. Je suis là. Je suis vraiment là… Je suis tellement heureuse !'},
+  2:{appelant:'entite',titre:'L’entité — Le passage',texte:'Ne cherchez plus Sally dans ce téléphone. Écoutez plutôt le silence autour de vous. Il a changé, n’est-ce pas ? Il a suffi d’une porte. Vous avez discuté, douté, choisi… et vous m’avez laissé passer. Certains d’entre vous m’attendaient. Ils ont bien joué. La maison est derrière moi, maintenant. Et vous êtes de ce côté-ci.'},
+  3:{appelant:'sally',titre:'Sally — Derrière le verrou',texte:'Le bruit s’est arrêté. La porte tient. Il est enfermé avec moi, mais il ne peut plus vous atteindre. Vous avez fermé le passage… et je suis restée du mauvais côté. Ne rouvrez pas pour me chercher. Gardez au moins ce que vous avez sauvé. Si ma voix vous appelle encore après celle-ci, prenez le temps d’écouter. Ce ne sera peut-être plus moi.'},
+  4:{appelant:'entite',titre:'L’entité — Vous restez',texte:'Vous avez entendu le verrou ? Ce n’était pas une porte qui s’ouvrait. C’était la dernière qui se fermait. Sally est ici. Vous aussi. Plus besoin de chercher comment sortir : la maison vous a gardés. Ceux qui m’ont servi ont obtenu ce qu’ils voulaient. Regardez bien les visages autour de la table. Nous avons tout le temps de faire connaissance.'},
+  5:{appelant:'sally',titre:'Sally — La ligne s’efface',texte:'Je vous entends de moins en moins. La porte a disparu avant que je puisse l’atteindre. Je suis toujours ici. La maison n’a rien rendu, rien laissé passer. Pour vous, cette nuit va finir. Pour moi, elle recommence. Si quelqu’un revient un jour, dites-lui que j’étais là. Que j’ai appelé. Et que j’attends encore.'}
+ };
+ const IDENTITES_APPEL={sally:{nom:'Sally',visage:'S',label:'Appel de Sally'},entite:{nom:'L’entité',visage:'◉',label:'Appel de l’entité'}};
+ const identiteAppel=m=>IDENTITES_APPEL[m?.appelant]||IDENTITES_APPEL.sally;
+ function conclusion(){const p=etat.data?.progression?.portes;return p?.phase==='fin'&&CONCLUSIONS[p.resultat?.issue]?{id:'conclusion-'+p.resultat.issue,...CONCLUSIONS[p.resultat.issue],issue:p.resultat.issue}:null}
  function messages(){
   const liste = [{id: 'accueil', titre: 'Le message d’accueil', sources: SOURCES.accueil}];
-  for(let n = 1; n <= Math.min(etat.resolues, 5); n++){
-   const fin=n===5&&etat.data?.progression?.portes?.resultat;
-   liste.push({id:'sceau-'+n,titre:fin?'La porte de '+fin.porte+ ' s’ouvre':`Le sceau ${ROMAINS[n-1]} cède`,sources:fin?['wav','mp3'].map(ext=>({src:`assets/audio/fin-porte-${fin.issue}.${ext}`,texte:fin.texte})):SOURCES.sceau});
-  }
+  const fin=conclusion();
+  for(let n = 1; n <= Math.min(etat.resolues, fin?4:5); n++)liste.push({id:'sceau-'+n,titre:`Le sceau ${ROMAINS[n-1]} cède`,sources:SOURCES.sceau});
+  if(fin)liste.push({...fin,sources:['wav','mp3'].map(ext=>({src:`assets/audio/fin-porte-${fin.issue}.${ext}`,texte:fin.texte}))});
   return liste;
  }
  const messageDe = id => messages().find(m => m.id === id);
+
+ // Chaque issue a son atmosphère ; les gagnants viennent uniquement de la révélation du moteur.
+ const FINS_VISUELLES={
+  1:{theme:'aube',signe:'Sally est revenue',texte:'Une lumière traverse enfin le seuil. La maison peut vous laisser partir.'},
+  2:{theme:'entite',signe:'Elle est de votre côté du seuil',texte:'Le passage est ouvert. Ce qui attendait derrière la porte est maintenant avec vous.'},
+  3:{theme:'scellee',signe:'Le dernier verrou tient',texte:'La maison retient l’entité. De l’autre côté, Sally attend encore.'},
+  4:{theme:'piege',signe:'La maison vous garde',texte:'Le verrou se referme derrière vous. Sally, l’entité et vous : plus personne ne sort.'},
+  5:{theme:'immobile',signe:'Le silence reprend sa place',texte:'Le seuil s’efface. Sally reste loin, et la maison attendra d’autres pas.'}
+ };
+ function rendreFin(portes){
+  const fin=portes?.phase==='fin'&&portes.resultat;
+  $('pl-fin-scene').hidden=!fin;
+  if(!fin){delete $('plateau').dataset.issue;delete $('plateau').dataset.fin;return}
+  const visuel=FINS_VISUELLES[fin.issue]||FINS_VISUELLES[5];
+  $('plateau').dataset.issue=String(fin.issue);$('plateau').dataset.fin=visuel.theme;
+  $('pl-fin-presage').textContent=visuel.signe;
+  $('pl-fin-recit').textContent=visuel.texte;
+  const src='assets/portes/porte-'+encodeURIComponent(fin.porte.toLowerCase())+'.png';
+  if($('pl-fin-porte').getAttribute('src')!==src)$('pl-fin-porte').setAttribute('src',src);
+  const revelation=Array.isArray(portes.revelation)?portes.revelation:[];
+  const gagnants=revelation.filter(j=>j.victoire===true);
+  const gentils=gagnants.filter(j=>j.camp==='gentil'),mechants=gagnants.filter(j=>j.camp==='mechant'),ambigus=gagnants.filter(j=>j.camp==='ambigu');
+  const victoires=[];if(gentils.length)victoires.push('des gentils');if(mechants.length)victoires.push('de l’entité');
+  if(ambigus.length)victoires.push('de '+ambigus.map(j=>j.prenom).join(' et '));
+  $('pl-fin-victoire').textContent=victoires.length?'Victoire '+victoires.join(' et '):revelation.length?'Aucun vainqueur':'Révélation des camps';
+  const noms=[];
+  if(gentils.length)noms.push('Gentils : '+gentils.map(j=>j.prenom).join(', '));
+  if(mechants.length)noms.push('Camp de l’entité : '+mechants.map(j=>j.prenom).join(', '));
+  if(ambigus.length)noms.push('Objectif personnel atteint : '+ambigus.map(j=>j.prenom+' (porte '+j.objectif+')').join(', '));
+  $('pl-fin-gagnants').textContent=noms.length?noms.join(' · '):revelation.length?'Aucun camp ni objectif personnel ne remporte cette partie.':'Les rôles et les objectifs sont révélés ci-dessous.';
+  $('pl-fin-appel').textContent=conclusion()?.appelant==='entite'?'Rappeler l’entité':'Rappeler Sally';
+ }
 
  // --- Ambiance : fichier assets/audio/ambiance.mp3 s'il existe, sinon un souffle grave synthétique.
  const drone = {noeuds: null,
@@ -234,7 +275,8 @@
   salve(){
    if(!etat.ctx) return;
    const c = etat.ctx, t0 = c.currentTime, sortie = c.createGain(); sortie.gain.value = 0; sortie.connect(c.destination);
-   [[404, 0], [431, 0]].forEach(([freq]) => { const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = freq; o.connect(sortie); o.start(t0); o.stop(t0 + 1.6); });
+   const frequences=messageDe(etat.appel?.id)?.appelant==='entite'?[178,185]:[404,431];
+   frequences.forEach(freq => { const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = freq; o.connect(sortie); o.start(t0); o.stop(t0 + 1.6); });
    const niveau = 0.16 * etat.volume;
    [0, 0.55].forEach(decalage => { sortie.gain.setValueAtTime(0, t0 + decalage); sortie.gain.linearRampToValueAtTime(niveau, t0 + decalage + 0.04); sortie.gain.setValueAtTime(niveau, t0 + decalage + 0.36); sortie.gain.linearRampToValueAtTime(0, t0 + decalage + 0.44); });
   },
@@ -245,6 +287,7 @@
  function noterManque(id){ const liste = lireManques(); if(!liste.includes(id)){ liste.push(id); ecrireSession('tu-etais-la-manques-' + etat.code, liste); } etat.manques = liste; }
  function retirerManque(id){ const liste = lireManques().filter(x => x !== id); ecrireSession('tu-etais-la-manques-' + etat.code, liste); etat.manques = liste; }
  function appeler(id){
+  if(id.startsWith('conclusion-'))etat.enAttente=null;
   if(etat.appel && etat.appel.phase !== 'termine') { noterManque(id); marquerJoue(id); rendre(); return; } // un appel à la fois : le suivant sera manqué
   stopperMinuteries(); marquerJoue(id);
   etat.appel = {id, phase: 'sonne', debut: Date.now()}; etat.sonnerie = true; regler();
@@ -350,13 +393,14 @@
   const portes=prog?.portes;
   ov.classList.toggle('pl-choix-portes',!!portes);
   ov.classList.toggle('pl-fin',portes?.phase==='fin');
+  rendreFin(portes);
   $('pl-portes').hidden=!portes;
   document.querySelector('.pl-conseil').hidden=!!portes;
   if(portes){
    const fin=portes.phase==='fin', vote=['vote','vote_2'].includes(portes.phase);
    const labels={attente:'Le débat va s’ouvrir',debat:'Le débat est ouvert',vote:'Vote secret',debat_egalite:'Égalité : nouveau débat',vote_2:'Second vote secret',fin:'La porte est ouverte'};
    $('pl-titre').textContent=fin?portes.resultat.texte:'Les cinq portes';
-   $('pl-enonce').textContent=fin?'Les souvenirs peuvent enfin être révélés.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
+   $('pl-enonce').textContent=fin?'Le choix est fait. Voici ce que chacun cherchait à obtenir.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
    $('pl-erreurs').hidden=true;
    const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
@@ -364,14 +408,14 @@
    $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span class="pl-porte-visuel" aria-hidden="true"><span class="pl-porte-repli">${signes[s]||''}</span><img src="assets/portes/porte-${encodeURIComponent(s.toLowerCase())}.png" alt="" width="1024" height="1536" decoding="async"></span><strong>${echapper(s)}</strong></li>`).join('');
    $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Votez en privé auprès de Sally : « Je vote la porte de la Ronce ».':'Comparez vos exclusions. Dites à Sally « prêt à voter » quand vous êtes prêts.';
    $('pl-portes-fin').hidden=!fin;
-   $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
+   $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li data-victoire="${j.victoire===true?'oui':'non'}"><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
   }
   $('pl-carnet').hidden = !(prog?.carnet?.length);
   $('pl-carnet-liste').innerHTML = (prog?.carnet || []).map(e => `<li><span>${ROMAINS[e.etape - 1]}</span> ${echapper(e.titre)} <b>${echapper(e.reponse)}</b></li>`).join('');
   $('pl-joueurs').innerHTML = (data?.joueurs || []).map(j => `<li>${echapper(j.prenom)}</li>`).join('');
   // Voix et ambiance.
   const liste = messages(), dernier = messageDe(etat.courant) || liste.at(-1);
-  $('pl-etat-voix').textContent = etat.voixEnCours ? 'Sally parle…' : etat.absent ? 'Le fichier audio manque : lisez le texte.' : 'La maison écoute.';
+  $('pl-etat-voix').textContent = etat.voixEnCours ? identiteAppel(messageDe(etat.courant)).nom+' parle…' : etat.absent ? 'Le fichier audio manque : lisez le texte.' : 'La maison écoute.';
   $('pl-etat-voix').classList.toggle('parle', etat.voixEnCours);
   $('pl-dock-titre').textContent = dernier.titre;
   const bouton = $('pl-rejouer'); bouton.dataset.etat = etat.voixEnCours ? 'lecture' : 'repos';
@@ -383,7 +427,13 @@
   const appel = etat.appel, appelMessage = appel ? messageDe(appel.id) : null;
   $('pl-appel').hidden = !appel;
   $('pl-appel').dataset.phase = appel?.phase || '';
+  $('pl-appel').dataset.appelant=appelMessage?.appelant||'sally';
+  $('pl-appel').dataset.conclusion=String(!!appelMessage?.id?.startsWith('conclusion-'));
   if(appel){
+   const identite=identiteAppel(appelMessage);
+   $('pl-appel').setAttribute('aria-label',identite.label);
+   document.querySelector('.pl-appel-nom').textContent=identite.nom;
+   document.querySelector('.pl-appel-visage span').textContent=identite.visage;
    $('pl-appel-etat').textContent = {sonne: 'Appel entrant', 'en-ligne': 'En ligne', termine: 'Appel terminé'}[appel.phase];
    $('pl-appel-sujet').textContent = appelMessage?.titre || '';
    $('pl-appel-ignorer').hidden = appel.phase !== 'sonne'; $('pl-appel-decrocher').hidden = appel.phase !== 'sonne'; $('pl-appel-raccrocher').hidden = appel.phase !== 'en-ligne';
@@ -392,7 +442,7 @@
    rendreChrono();
   }
   $('pl-manques').hidden = !etat.manques.length || !!appel;
-  $('pl-manques-texte').textContent = etat.manques.length > 1 ? `${etat.manques.length} appels manqués de Sally` : 'Appel manqué de Sally';
+  $('pl-manques-texte').textContent = etat.manques.length > 1 ? `${etat.manques.length} appels manqués` : messageDe(etat.manques[0])?.appelant==='entite'?'Appel manqué de l’entité':'Appel manqué de Sally';
   $('pl-invite').hidden = etat.deverrouille || !!appel;
   $('pl-invite-texte').textContent = 'Touchez pour réveiller l’ambiance de la maison.';
   // Annonce d'un pouvoir révélé à la table, et mémoire des pouvoirs déjà révélés.
@@ -418,6 +468,15 @@
  // --- Événements de la partie : accueil au premier affichage, un message à chaque sceau ouvert.
  function evenements(){
   if(!etat.ouvert || !etat.code) return;
+  const fin=conclusion();
+  if(fin){
+   // La conclusion remplace un éventuel ancien appel et reste unique pour cette partie.
+   if(!dejaJoue(fin.id)){
+    if(etat.appel&&etat.appel.id!==fin.id){noterManque(etat.appel.id);arreterVoix();stopperMinuteries();etat.appel=null}
+    appeler(fin.id);
+   }
+   return;
+  }
   // Premier regard sur cette partie : on note combien de sceaux sont déjà ouverts, sans les annoncer.
   const cleVus = 'tu-etais-la-sceaux-' + etat.code, vus = lireSession(cleVus);
   if(vus === null) ecrireSession(cleVus, etat.resolues);
@@ -448,6 +507,8 @@
  }
 
  // --- Boutons.
+ $('pl-fin-appel').addEventListener('click',()=>{const fin=conclusion();if(!fin)return;deverrouiller();if(etat.appel){arreterVoix();stopperMinuteries();etat.appel=null}appeler(fin.id)});
+ $('pl-fin-details').addEventListener('click',()=>{const titre=$('pl-portes-fin').querySelector('h3');titre.setAttribute('tabindex','-1');titre.focus({preventScroll:true});titre.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})});
  $('pl-regie').addEventListener('click', fermer);
  $('pl-activer').addEventListener('click', deverrouiller);
  // Rappeler un appel manqué : on appelle Sally, elle répond tout de suite.
@@ -486,7 +547,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 7 : portes illustrées et symboles en laiton, vote secret, résultat et révélation, appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 9 : appels de conclusion de Sally et de l’entité, cinq ambiances de fin et gagnants révélés, portes illustrées, vote secret, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
