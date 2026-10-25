@@ -41,7 +41,8 @@
    $('puzzle-number').textContent='AVANT QUE TOUT COMMENCE';$('puzzle-title').textContent='Nous attendons les autres.';$('puzzle-text').textContent='Les invités rejoignent la partie dans Telegram. Quand toutes les places sont occupées, l’organisateur touche « Lancer la partie » sur le site.';
   }else if(!p.initialise){$('puzzle-number').textContent='PRÉPARATION INCOMPLÈTE';$('puzzle-title').textContent='Les archives ne sont pas prêtes.';$('puzzle-text').textContent='Cette partie ne contient pas les cinq énigmes attendues. Demandez à l’organisateur de vérifier la version du workflow et la table jeu_enigmes.';
   }else if(p.active){$('puzzle-number').textContent=`SCEAU ${p.active.etape} / 5`;$('puzzle-title').textContent=p.active.titre;$('puzzle-text').textContent=p.active.enonce;
-  }else{$('puzzle-number').textContent='LES CINQ SCEAUX SONT RECONSTITUÉS';$('puzzle-title').textContent='Le rituel est prêt.';$('puzzle-text').textContent='Vous avez réuni les cinq réponses. Le vote final et les victoires des camps ne sont pas encore automatisés. L’organisateur peut terminer le test avec « Arrêter la partie ».'}
+  }else if(p.portes?.resultat){$('puzzle-number').textContent='LE CHOIX EST FAIT';$('puzzle-title').textContent='La porte de '+p.portes.resultat.porte;$('puzzle-text').textContent=p.portes.resultat.texte+' Ouvrez le plateau pour la révélation des camps.'
+  }else{$('puzzle-number').textContent='LES CINQ SCEAUX SONT RECONSTITUÉS';$('puzzle-title').textContent='Le rituel est prêt.';$('puzzle-text').textContent='Le dénouement de cette ancienne partie reste à jouer autour de la table. L’organisateur peut ensuite arrêter la partie.'}
   $('play-instructions').textContent=p.active?`Chacun demande /indice en privé dans Telegram. Discutez ensemble. Un joueur propose ensuite /repondre ${p.active.etape} VOTRE REPONSE. Les rôles et les camps restent sur vos téléphones.`:'Les messages privés restent sur vos téléphones. Cet écran affiche uniquement les découvertes communes.';
   $('notebook').replaceChildren(...p.carnet.map(e=>{const ligne=el('li');ligne.append(el('span',`${e.etape}. ${e.titre}`),el('strong',e.reponse));return ligne}));
   if(!p.carnet.length)$('notebook').append(el('li','Les réponses validées apparaîtront ici.'));
@@ -63,7 +64,9 @@
  function boutonsAdmin(){
   const partie=adminData?.partie,pret=!!adminKey&&adminCertain&&!adminBusy;
   const enCours=partie?.statut==='en_cours'&&adminData?.progression?.resolues!==5;
-  $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;$('ouvrir-plateau').hidden=!enCours;
+  $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;
+  $('ouvrir-plateau').hidden=partie?.statut!=='en_cours';
+  $('ouvrir-plateau').textContent=adminData?.progression?.resolues===5?'Voir les portes et le résultat ▶':'Ouvrir le plateau de jeu ▶';
   $('admin-pause').disabled=!pret||pauseMessages===null;
   $('admin-pause').textContent=pauseMessages?'Reprendre les messages ▶':'Mettre en pause les messages ❚❚';
   $('admin-pause-hint').textContent=pauseMessages===null?'Messages spontanés de Sally et de la Présence : état inconnu. Touche Actualiser.':pauseMessages?'Messages spontanés en pause : Sally et la Présence se taisent jusqu’à la reprise.':'Messages spontanés actifs : un message tous les 5 minutes environ.';
@@ -71,8 +74,8 @@
   const phase=partie?(finie?'rejouer':partie.statut==='accueil'?'accueil':'jouer'):partieTerminee?'rejouer':'preparer';
   $('game-flow').hidden=$('admin-controls').hidden;
   for(const step of $('game-flow').querySelectorAll('[data-step]')){const courant=step.dataset.step===phase;step.classList.toggle('current',courant);if(courant)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current')}
-  $('phase-guide').textContent={preparer:'Choisis le scénario et le nombre de joueurs, puis crée la partie.',accueil:'Les invités scannent le QR code. Lance la partie lorsque tout le monde est inscrit.',jouer:'Tout se passe ici et sur vos téléphones. Le carnet se met à jour au fil des réponses.',rejouer:partie?'Les cinq énigmes sont résolues. Termine cette partie pour en préparer une autre.':'La partie est terminée. Choisis vos prochains paramètres et crée une nouvelle partie.'}[phase];
-  $('admin-controls').classList.toggle('has-party',!!partie);$('admin-controls').querySelector('h2').textContent=!partie?(partieTerminee?'Une nouvelle nuit.':'Préparer la partie.'):partie.statut==='accueil'?'Accueillir vos invités.':finie?'Le rituel est prêt.':'La partie est lancée.';
+  $('phase-guide').textContent={preparer:'Choisis le scénario et le nombre de joueurs, puis crée la partie.',accueil:'Les invités scannent le QR code. Lance la partie lorsque tout le monde est inscrit.',jouer:'Tout se passe ici et sur vos téléphones. Le carnet se met à jour au fil des réponses.',rejouer:partie?'Consulte les portes et le résultat sur le plateau. Termine ensuite cette partie pour en préparer une autre.':'La partie est terminée. Choisis vos prochains paramètres et crée une nouvelle partie.'}[phase];
+  $('admin-controls').classList.toggle('has-party',!!partie);$('admin-controls').querySelector('h2').textContent=!partie?(partieTerminee?'Une nouvelle nuit.':'Préparer la partie.'):partie.statut==='accueil'?'Accueillir vos invités.':finie?(adminData.progression.portes?.resultat?'Le choix est fait.':'Le rituel est prêt.'):'La partie est lancée.';
   $('admin-create-button').textContent=partieTerminee?'Créer une nouvelle partie ↗':'Créer la partie ↗';
   $('admin-stop').textContent=finie?'Terminer et rejouer':partie?.statut==='accueil'?'Annuler cet accueil':'Arrêter la partie';
   document.body.dataset.phase=phase;
@@ -106,7 +109,7 @@
    if(cycle!==adminCycle)return;
    const data=response.ok?await response.json():null;
    if(cycle!==adminCycle)return;
-   if(data?.ok&&typeof data.pause==='boolean'){pauseMessages=data.pause;if(action!=='etat')$('admin-feedback').textContent=data.message||'Fait.'}
+   if(data?.ok&&typeof data.pause==='boolean'){pauseMessages=data.pause;window.Plateau?.annonces(data.annonces);if(action!=='etat')$('admin-feedback').textContent=data.message||'Fait.'}
    else{pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}
   }catch{if(cycle===adminCycle){pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}}
   finally{clearTimeout(timeout);if(cycle===adminCycle)boutonsAdmin()}
@@ -150,6 +153,8 @@
  // Le toucher sur « Lancer la partie » autorise le son de l'iPad : l'accueil peut alors démarrer tout seul.
  $('admin-start').addEventListener('click',()=>{window.Plateau?.deverrouiller();if(adminData?.partie)commander('demarrer',{partie:adminData.partie.code})});
  $('ouvrir-plateau').addEventListener('click',()=>{window.Plateau?.deverrouiller();window.Plateau?.ouvrir()});
+ // Le plateau relit souvent les pouvoirs révélés à la table pour les annoncer vite, sans attendre l'actualisation générale.
+ window.lirePouvoirs=()=>controler('etat');
  $('admin-stop').addEventListener('click',()=>{const code=adminData?.partie?.code;if(code&&confirm('Arrêter la partie '+code+' ? Son historique sera conservé.'))commander('fin',{partie:code})});
  $('admin-copy-invite').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('admin-invite-url').value);$('admin-feedback').textContent='Lien d’inscription copié. Partage-le avec tes invités.'}catch{$('admin-invite-url').select();$('admin-feedback').textContent='Sélectionne et copie le lien d’inscription.'}});
  $('admin-logout').addEventListener('click',()=>quitterAdmin());
