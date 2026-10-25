@@ -206,3 +206,18 @@ body.plateau-ouvert{overflow:hidden}
 .pl-fin #pl-portes-fin h3{margin-top:10px}
 .pl-fin #pl-portes-revelation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0}
 @media(max-width:600px){.pl-fin #pl-portes-revelation{grid-template-columns:1fr}}
+/* Portes photographiques : les cinq choix occupent ensemble le plateau du dernier sceau. */
+.pl-choix-portes .pl-vue{display:none}
+.pl-choix-portes .pl-centre{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+.pl-choix-portes #pl-titre{font-size:clamp(28px,3.5vw,44px)}
+.pl-choix-portes #pl-enonce{font-size:18px;margin-top:8px}
+.pl-choix-portes #pl-sceaux,.pl-choix-portes #pl-carnet,.pl-choix-portes .pl-sceau>section:last-child{display:none}
+#pl-portes-liste li,.pl-fin #pl-portes-liste li{min-height:0;border-radius:0;background:transparent;overflow:hidden;justify-content:flex-start}
+#pl-portes-liste li>.pl-porte-visuel{display:block;position:relative;width:100%;height:clamp(130px,28vh,310px);font-size:38px;line-height:1;overflow:hidden;background:#17100a}
+.pl-porte-visuel img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+.pl-porte-repli{display:grid;place-items:center;position:absolute;inset:0;color:var(--braise);font-size:38px}
+#pl-portes-liste strong{display:block;width:100%;text-align:center;padding:8px 3px;font-size:17px}
+#pl-portes-liste .choisie{border-color:var(--braise-vive);box-shadow:0 0 16px rgba(224,164,90,.22)}
+#pl-portes-liste .choisie strong{background:rgba(224,164,90,.14);color:var(--braise-vive)}
+.pl-fin #pl-portes-liste li>.pl-porte-visuel{height:clamp(100px,16vh,160px)}
+@media(max-width:600px){#pl-portes-liste strong{font-size:12px;padding:8px 1px}#pl-portes-liste li>.pl-porte-visuel{height:150px}.pl-fin #pl-portes-liste li>.pl-porte-visuel{height:100px}}

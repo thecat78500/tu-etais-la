@@ -221,6 +221,7 @@ const CLE='f'.repeat(64);
   const donneesPortes={partie:{code:'MPLATEAU',scenario_id:8,nombre_joueurs:4,statut:'en_cours'},joueurs:[{prenom:'David'}],progression:{initialise:true,resolues:4,total:5,active:{etape:5,titre:'Les cinq portes',enonce:'Recoupez vos exclusions.'},carnet:[],portes}};
   await page.evaluate(d=>{sessionStorage.setItem('tu-etais-la-sceaux-MPLATEAU','5');window.Plateau.mettreAJour(d)},donneesPortes);
   assert(await page.locator('#pl-portes').isVisible());assert.equal(await page.locator('#pl-portes-liste li').count(),5);
+  await page.waitForFunction(()=>{const images=[...document.querySelectorAll('#pl-portes-liste img')];return images.length===5&&images.every(i=>i.complete&&i.naturalWidth>0)});
   assert((await page.locator('#pl-portes-phase').innerText()).includes('2/4 ont voté'));assert(await page.locator('#pl-portes-fin').isHidden());
   for(const [nom,width,height]of [['paysage',1194,834],['portrait',834,1194]]){
    await page.setViewportSize({width,height});

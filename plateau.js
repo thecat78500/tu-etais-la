@@ -348,6 +348,7 @@
   $('pl-proximite').innerHTML = [0, 1, 2, 3, 4].map(i => '<li class="' + (i < proche ? 'plein' : '') + '"></li>').join('');
   $('pl-proximite').setAttribute('aria-label', 'Proximité de l’entité : ' + proche + ' sur 5');
   const portes=prog?.portes;
+  ov.classList.toggle('pl-choix-portes',!!portes);
   ov.classList.toggle('pl-fin',portes?.phase==='fin');
   $('pl-portes').hidden=!portes;
   document.querySelector('.pl-conseil').hidden=!!portes;
@@ -360,7 +361,7 @@
    const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
    const signes={Lune:'☾',Cendre:'⋰',Ronce:'♧',Verre:'◇',Seuil:'⊓'};
-   $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span aria-hidden="true">${signes[s]||''}</span><strong>${echapper(s)}</strong></li>`).join('');
+   $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span class="pl-porte-visuel" aria-hidden="true"><span class="pl-porte-repli">${signes[s]||''}</span><img src="assets/portes/porte-${encodeURIComponent(s.toLowerCase())}.png" alt="" width="1024" height="1536" decoding="async"></span><strong>${echapper(s)}</strong></li>`).join('');
    $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Votez en privé auprès de Sally : « Je vote la porte de la Ronce ».':'Comparez vos exclusions. Dites à Sally « prêt à voter » quand vous êtes prêts.';
    $('pl-portes-fin').hidden=!fin;
    $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
@@ -485,7 +486,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 6 : cinq portes, vote secret, résultat et révélation, appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 7 : portes illustrées et symboles en laiton, vote secret, résultat et révélation, appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
