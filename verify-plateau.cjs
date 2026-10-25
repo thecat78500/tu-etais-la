@@ -127,10 +127,61 @@ const CLE='f'.repeat(64);
   assert.equal((await page.evaluate(()=>window.Plateau.etat())).voixEnCours,false);
   assert(await page.locator('#pl-carnet').isVisible());assert((await page.locator('#pl-carnet-liste').innerText()).includes('ALMA'));
   assert.equal(await page.locator('#pl-sceaux li.ouvert').count(),1);assert.equal(await page.locator('#pl-sceaux li.courant').count(),1);
+  // Annonce d'un pouvoir révélé à la table : bandeau, son, mémoire, file d'attente, sans nom ni camp.
+  await page.evaluate(()=>window.Plateau.annonces([]));
+  assert(await page.locator('#pl-annonce').isHidden(),'pas d’annonce sans pouvoir');
+  const talisman={id:'talisman-9',type:'talisman',fragment:'Fragment authentifié : position 2 du nom = N.',at:'2026-10-24T20:00:00Z'};
+  const rempart={id:'rempart-12',type:'rempart',fragment:'',at:'2026-10-24T20:05:00Z'};
+  const avantPouvoir=(await page.evaluate(()=>window.Plateau.etat().effets)).length;
+  await page.evaluate(t=>window.Plateau.annonces([t]),talisman);
+  await page.waitForFunction(()=>!document.getElementById('pl-annonce').hidden);
+  assert((await page.locator('#pl-annonce-titre').innerText()).includes('talisman'));
+  assert((await page.locator('#pl-annonce-fragment').innerText()).includes('position 2 du nom = N'));
+  assert(await page.locator('#pl-annonce-fermer').isVisible());
+  await page.screenshot({path:path.join(root,'captures','plateau-annonce.png')});
+  await page.waitForFunction(n=>window.Plateau.etat().effets.slice(n).includes('pouvoir'),avantPouvoir,{timeout:4000}); // le son d'annonce part dès que le fichier est introuvable ou lu
+  const texteAnnonce=await page.locator('#pl-annonce').innerText();assert(!/Porteur|Gardien|camp|David|Alice/.test(texteAnnonce),'ni nom ni camp dans l’annonce');
+  // Une deuxième annonce attend la fermeture de la première ; la même annonce ne se rejoue jamais.
+  await page.evaluate(([t,r])=>window.Plateau.annonces([t,r]),[talisman,rempart]);
+  assert((await page.locator('#pl-annonce-titre').innerText()).includes('talisman'),'la première reste affichée');
+  await page.locator('#pl-annonce-fermer').click();
+  await page.waitForFunction(()=>!document.getElementById('pl-annonce').hidden&&document.getElementById('pl-annonce-titre').textContent.includes('rempart'),null,{timeout:4000});
+  await page.locator('#pl-annonce-fermer').click();await page.waitForFunction(()=>document.getElementById('pl-annonce').hidden);
+  await page.evaluate(([t,r])=>window.Plateau.annonces([t,r]),[talisman,rempart]);await page.waitForTimeout(900);
+  assert(await page.locator('#pl-annonce').isHidden(),'une annonce déjà faite ne revient pas');
+  await page.locator('#pl-voix').click();assert(await page.locator('#pl-pouvoirs').isVisible());assert.equal(await page.locator('#pl-pouvoirs-liste li').count(),2);
+  await page.locator('#pl-feuille-fermer').click();
+  // Une annonce qui n'apparaît qu'au rechargement (premier regard) n'est pas rejouée.
   // Une actualisation sans changement ne rejoue rien.
   const n=(await page.evaluate(()=>window.__lectures)).length;
   await page.evaluate(()=>window.Plateau.mettreAJour({partie:{code:'MPLATEAU',scenario_id:8,nombre_joueurs:4,statut:'en_cours'},joueurs:[],progression:{initialise:true,resolues:1,total:5,active:{etape:2,titre:'Les quatre marques',enonce:'a\nb\n\nc'},carnet:[]}}));
   assert.equal((await page.evaluate(()=>window.__lectures)).length,n);
+  // Compteur d'erreurs et approche de l'entité : nombres affichés, bandeau et son à chaque approche, rien au premier regard.
+  const maj=(erreurs)=>page.evaluate(e=>window.Plateau.mettreAJour({partie:{code:'MPLATEAU',scenario_id:8,nombre_joueurs:4,statut:'en_cours'},joueurs:[],progression:{initialise:true,resolues:1,total:5,active:{etape:2,titre:'Les quatre marques',enonce:'a\nb\n\nc'},carnet:[],erreurs:e}}),erreurs);
+  await maj({compte:2,vers_seuil:2,declenchements_total:0,proximite:0});
+  assert(await page.locator('#pl-erreurs').isVisible());
+  assert.equal(await page.locator('#pl-erreurs-points li').count(),3);assert.equal(await page.locator('#pl-erreurs-points li.plein').count(),2);
+  assert.equal(await page.locator('#pl-proximite li').count(),5);assert.equal(await page.locator('#pl-proximite li.plein').count(),0);
+  assert(await page.locator('#pl-annonce').isHidden(),'pas d’annonce sans approche');
+  const avantApproche=(await page.evaluate(()=>window.Plateau.etat().effets)).length;
+  await maj({compte:3,vers_seuil:0,declenchements_total:1,proximite:1});
+  await page.waitForFunction(()=>!document.getElementById('pl-annonce').hidden);
+  assert((await page.locator('#pl-annonce-titre').innerText()).includes('rapproché'));
+  assert((await page.locator('#pl-annonce-etiquette').innerText()).toLowerCase().includes('entité'));
+  assert(await page.locator('#pl-annonce-fragment').isHidden());
+  await page.waitForFunction(n=>window.Plateau.etat().effets.slice(n).includes('approche'),avantApproche,{timeout:4000});
+  assert.equal(await page.locator('#pl-erreurs-points li.plein').count(),0);assert.equal(await page.locator('#pl-proximite li.plein').count(),1);
+  assert(!/Porteur|Gardien|camp|David|Alice|ZORA/.test(await page.locator('#pl-annonce').innerText()),'ni nom ni réponse dans le bandeau');
+  await page.screenshot({path:path.join(root,'captures','plateau-approche.png')});
+  await page.locator('#pl-annonce-fermer').click();await page.waitForFunction(()=>document.getElementById('pl-annonce').hidden);
+  await maj({compte:3,vers_seuil:0,declenchements_total:1,proximite:1});await page.waitForTimeout(900);
+  assert(await page.locator('#pl-annonce').isHidden(),'la même approche ne se rejoue pas');
+  // Premier regard sur une partie (ou rechargement) : le compteur s'affiche, rien n'est annoncé.
+  await page.evaluate(()=>sessionStorage.removeItem('tu-etais-la-approches-MPLATEAU'));
+  await maj({compte:7,vers_seuil:1,declenchements_total:2,proximite:2});await page.waitForTimeout(900);
+  assert(await page.locator('#pl-annonce').isHidden(),'au premier regard, rien n’est annoncé');
+  assert.equal(await page.locator('#pl-erreurs-points li.plein').count(),1);assert.equal(await page.locator('#pl-proximite li.plein').count(),2);
+  assert(/vacille|erreur/i.test(await page.locator('#pl-erreurs-points').getAttribute('aria-label')||''),'compteur lisible aux lecteurs d’écran');
   // Mises en page : pas de défilement de la page, boutons tactiles d'au moins 56 px, paysage et portrait.
   for(const [l,h,nom] of [[1194,834,'paysage'],[834,1194,'portrait'],[1366,1024,'ipad-pro']]){
    await page.setViewportSize({width:l,height:h});await page.waitForTimeout(150);

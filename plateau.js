@@ -18,7 +18,8 @@
  const etat = {deverrouille: false, ouvert: false, ctx: null, bus: null, code: null, resolues: 0, data: null, affaires: null,
   musiqueVoulue: true, volume: 0.6, voixEnCours: false, courant: null, enAttente: null, jeton: 0, absent: false, texteActuel: '',
   appel: null, sonnerie: false, delaiSonnerie: 40000, minuterie: null, chrono: null, manques: [],
-  musiqueNiveau: 0.5, effetEnCours: 0, jetonEffet: 0};
+  musiqueNiveau: 0.5, effetEnCours: 0, jetonEffet: 0,
+  annonces: [], fileAnnonces: [], annonceCourante: null, minuterieAnnonce: null, sondePouvoirs: null};
  try {
   etat.musiqueVoulue = localStorage.getItem('tu-etais-la-musique') !== 'off';
   const v = Number(localStorage.getItem('tu-etais-la-volume')); if(v >= 0.1 && v <= 1) etat.volume = v;
@@ -113,7 +114,11 @@
   'sceau-ouvert': t => { coup(t, 110, 0.6, 0.3); const c = etat.ctx, o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 1800; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + 0.1, 0.002, 0.03, 0.12); o.start(t + 0.1); o.stop(t + 0.16);
    [[73.4, 0.16, 2.4], [110, 0.08, 1.9]].forEach(([freq, niveau, duree]) => { const p = c.createOscillator(), q = c.createGain(); p.frequency.value = freq; p.connect(q); q.connect(sortieEffets()); enveloppe(q, t + 0.2, 0.3, duree, niveau); p.start(t + 0.2); p.stop(t + 0.2 + duree + 0.05); }); },
   // Indice découvert : deux notes claires qui montent, comme un éclat de verre.
-  'indice-decouvert': t => { const c = etat.ctx; [[659.3, 0], [987.8, 0.16]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.01, 1.5, 0.13); o.start(t + decalage); o.stop(t + decalage + 1.55); }); }
+  'indice-decouvert': t => { const c = etat.ctx; [[659.3, 0], [987.8, 0.16]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.01, 1.5, 0.13); o.start(t + decalage); o.stop(t + decalage + 1.55); }); },
+  // Pouvoir révélé à la table : trois notes qui s'étirent, comme une présence qui se manifeste.
+  // L'entité s'approche : deux coups sourds, un grincement lent, un souffle froid.
+  approche: t => { coup(t, 70, 0.5, 0.28); coup(t + 0.55, 64, 0.55, 0.3); grincement(t + 1, 120, 70, 1.5, 0.12); souffleBref(t, 2.4, 320, 0.12, 2); },
+  pouvoir: t => { const c = etat.ctx; [[293.7, 0], [440, 0.22], [587.3, 0.44]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.05, 2.2, 0.12); o.start(t + decalage); o.stop(t + decalage + 2.3); }); souffleBref(t, 2.4, 900, 0.1, 2); }
  };
  async function jouerEffet(id){
   if(!etat.ctx || etat.ctx.state === 'closed') return;
@@ -137,7 +142,7 @@
   if(tampon){ const s = etat.ctx.createBufferSource(); s.buffer = tampon; s.connect(sortieEffets()); s.start(); return; }
   SYNTHESE[id]?.(etat.ctx.currentTime + 0.05);
  }
- const DUREES = {craquement: 1.4, coups: 2, pas: 4, vent: 4, murmure: 2.3, horloge: 4.5, porte: 2.2, cloche: 4.5, 'sceau-ouvert': 2.6, 'indice-decouvert': 1.8};
+ const DUREES = {craquement: 1.4, coups: 2, pas: 4, vent: 4, murmure: 2.3, horloge: 4.5, porte: 2.2, cloche: 4.5, 'sceau-ouvert': 2.6, 'indice-decouvert': 1.8, pouvoir: 3, approche: 3};
  // Liste facultative assets/audio/effets/effets.json : les sons que vous avez déposés, au choix pour tous les moments
  // ([« a », « b »]) ou par moment ({ « debut »: […], « milieu »: […], « fin »: […] }). Sans liste, les huit bruits de base sont utilisés.
  async function listeEffets(){
@@ -281,6 +286,41 @@
   essayer(0);
  }
 
+ // --- Annonces : un pouvoir révélé à toute la table s'affiche aussi sur l'iPad (sans nom ni camp).
+ const TEXTES_ANNONCE = {
+  talisman: {titre: 'Un talisman s’illumine', texte: 'Quelqu’un à cette table certifie un fragment : il est authentique.'},
+  rempart: {titre: 'Un rempart se lève', texte: 'La Présence se tait pendant dix minutes.'},
+  // Venue des erreurs de la table (pas d'un pouvoir) : repérée en comparant le compteur d'une synchronisation à l'autre.
+  approche: {etiquette: 'L’entité', titre: 'L’entité s’est rapprochée', texte: 'Une erreur l’a attirée. Quelque part dans cette maison, un souvenir vacille.'}
+ };
+ function afficherAnnonce(){
+  if(etat.annonceCourante || !etat.fileAnnonces.length) return;
+  const a = etat.annonceCourante = etat.fileAnnonces.shift();
+  // Le son d'annonce ne couvre jamais une voix ni un appel : le bandeau, lui, s'affiche toujours.
+  if(etat.deverrouille && !etat.voixEnCours && !etat.appel && !etat.sonnerie) jouerEffet(a.type === 'approche' ? 'approche' : 'pouvoir');
+  clearTimeout(etat.minuterieAnnonce); etat.minuterieAnnonce = setTimeout(masquerAnnonce, 14000);
+  rendre();
+ }
+ function masquerAnnonce(){ clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; rendre(); setTimeout(afficherAnnonce, 600); }
+ // L'entité s'est-elle rapprochée depuis la dernière synchronisation ? Le premier regard sur une partie n'annonce rien.
+ function suivreApproches(){
+  const er = etat.erreurs; if(!etat.code || !er) return;
+  const cle = 'tu-etais-la-approches-' + etat.code, vu = lireSession(cle), total = er.declenchements_total;
+  if(vu === null){ ecrireSession(cle, total); return; }
+  if(total > vu){ ecrireSession(cle, total); if(etat.ouvert){ etat.fileAnnonces.push({id: 'approche-' + total, type: 'approche', fragment: ''}); afficherAnnonce(); } }
+ }
+ function recevoirAnnonces(liste){
+  if(!etat.code || !Array.isArray(liste)) return;
+  const cle = 'tu-etais-la-annonces-' + etat.code, vus = lireSession(cle), ids = liste.map(a => a.id);
+  etat.annonces = liste;
+  // Premier regard sur cette partie (ou rechargement) : on note ce qui est déjà arrivé, sans le rejouer.
+  if(vus === null){ ecrireSession(cle, ids); rendre(); return; }
+  const nouvelles = liste.filter(a => !vus.includes(a.id) && TEXTES_ANNONCE[a.type]);
+  if(nouvelles.length){ ecrireSession(cle, [...vus, ...nouvelles.map(a => a.id)]); etat.fileAnnonces.push(...nouvelles); afficherAnnonce(); }
+  rendre();
+ }
+ function surveillerPouvoirs(){ clearInterval(etat.sondePouvoirs); etat.sondePouvoirs = null; if(etat.ouvert) etat.sondePouvoirs = setInterval(() => { try { window.lirePouvoirs?.(); } catch {} }, 6000); }
+
  // --- Rendu.
  function echapper(t){ return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
  function rendre(){
@@ -297,6 +337,13 @@
   $('pl-titre').textContent = actif ? actif.titre : 'Le rituel est prêt.';
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
+  // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
+  const er = etat.erreurs, vers = Math.min(3, er?.vers_seuil || 0), proche = Math.min(5, er?.proximite || 0);
+  $('pl-erreurs').hidden = !(er && actif);
+  $('pl-erreurs-points').innerHTML = [0, 1, 2].map(i => '<li class="' + (i < vers ? 'plein' : '') + '"></li>').join('');
+  $('pl-erreurs-points').setAttribute('aria-label', 'Erreurs sur cette énigme : ' + vers + ' sur 3 avant que l’entité s’approche');
+  $('pl-proximite').innerHTML = [0, 1, 2, 3, 4].map(i => '<li class="' + (i < proche ? 'plein' : '') + '"></li>').join('');
+  $('pl-proximite').setAttribute('aria-label', 'Proximité de l’entité : ' + proche + ' sur 5');
   $('pl-carnet').hidden = !(prog?.carnet?.length);
   $('pl-carnet-liste').innerHTML = (prog?.carnet || []).map(e => `<li><span>${ROMAINS[e.etape - 1]}</span> ${echapper(e.titre)} <b>${echapper(e.reponse)}</b></li>`).join('');
   $('pl-joueurs').innerHTML = (data?.joueurs || []).map(j => `<li>${echapper(j.prenom)}</li>`).join('');
@@ -326,6 +373,18 @@
   $('pl-manques-texte').textContent = etat.manques.length > 1 ? `${etat.manques.length} appels manqués de Sally` : 'Appel manqué de Sally';
   $('pl-invite').hidden = etat.deverrouille || !!appel;
   $('pl-invite-texte').textContent = 'Touchez pour réveiller l’ambiance de la maison.';
+  // Annonce d'un pouvoir révélé à la table, et mémoire des pouvoirs déjà révélés.
+  const annonce = etat.annonceCourante, texteAnnonce = annonce ? TEXTES_ANNONCE[annonce.type] : null;
+  $('pl-annonce').hidden = !texteAnnonce;
+  if(texteAnnonce){
+   $('pl-annonce-etiquette').textContent = texteAnnonce.etiquette || 'Un pouvoir se révèle';
+   $('pl-annonce-titre').textContent = texteAnnonce.titre; $('pl-annonce-texte').textContent = texteAnnonce.texte;
+   $('pl-annonce-fragment').hidden = !annonce.fragment; $('pl-annonce-fragment').textContent = annonce.fragment ? '« ' + annonce.fragment + ' »' : '';
+   $('pl-annonce').dataset.type = annonce.type;
+  }
+  const revelations = etat.annonces.filter(a => TEXTES_ANNONCE[a.type]);
+  $('pl-pouvoirs').hidden = !revelations.length;
+  $('pl-pouvoirs-liste').innerHTML = revelations.map(a => `<li><strong>${echapper(TEXTES_ANNONCE[a.type].titre)}</strong>${a.fragment ? `<p>« ${echapper(a.fragment)} »</p>` : `<p>${echapper(TEXTES_ANNONCE[a.type].texte)}</p>`}</li>`).join('');
   $('pl-transcription').hidden = !(etat.voixEnCours || etat.absent) || !!appel;
   $('pl-transcription-texte').textContent = etat.texteActuel;
   $('pl-feuille-liste').innerHTML = liste.map(m => { const manque = etat.manques.includes(m.id);
@@ -347,18 +406,23 @@
  function mettreAJour(data){
   etat.data = data;
   const partie = data?.partie;
-  if(!partie || partie.statut !== 'en_cours'){ if(etat.ouvert) fermer(); etat.code = null; etat.appel = null; etat.manques = []; stopperMinuteries(); return; }
+  if(!partie || partie.statut !== 'en_cours'){ if(etat.ouvert) fermer(); etat.code = null; etat.appel = null; etat.manques = []; stopperMinuteries(); etat.erreurs = null; return; }
   if(etat.code !== partie.code){ etat.code = partie.code; etat.courant = null; etat.enAttente = null; etat.appel = null; stopperMinuteries(); etat.manques = lireManques(); }
   etat.resolues = data.progression?.resolues || 0;
+  const er = data.progression?.erreurs;
+  etat.erreurs = er && Number.isFinite(er.declenchements_total) ? er : null;
+  suivreApproches();
   rendre(); evenements();
  }
  function ouvrir(){
   if(!etat.data?.partie || etat.data.partie.statut !== 'en_cours') return;
-  etat.ouvert = true; chargerAffaires(); rendre(); demarrerMusique(); evenements();
+  etat.ouvert = true; chargerAffaires(); rendre(); demarrerMusique(); evenements(); surveillerPouvoirs();
+  try { window.lirePouvoirs?.(); } catch {}
  }
  function fermer(){
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
-  etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique(); rendre();
+  etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
+  clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
  }
 
  // --- Boutons.
@@ -387,7 +451,7 @@
  async function boutonsBruits(){
   await listeEffets();
   const l = bruit.liste, noms = l ? [...new Set([...(l.debut || []), ...(l.milieu || []), ...(l.fin || []), ...(l.tous || [])])] : EFFETS;
-  $('pl-bruits').innerHTML = [...(noms.length ? noms : EFFETS), 'sceau-ouvert', 'indice-decouvert'].map(id => `<button type="button" data-bruit="${echapper(id)}">${echapper(id)}</button>`).join('');
+  $('pl-bruits').innerHTML = [...(noms.length ? noms : EFFETS), 'sceau-ouvert', 'indice-decouvert', 'approche'].map(id => `<button type="button" data-bruit="${echapper(id)}">${echapper(id)}</button>`).join('');
  }
  boutonsBruits();
  $('pl-bruits').addEventListener('click', e => { const b = e.target.closest('button[data-bruit]'); if(b){ deverrouiller(); jouerEffet(b.dataset.bruit); } });
@@ -400,10 +464,11 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 3 : appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique.';
- window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher,
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 5 : appel de Sally, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
+ $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
+ window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
   effet: jouerEffet, delaisEffets: d => { Object.assign(bruit.delais, d); programmerEffet(50); },
   rechargerEffets: () => { bruit.liste = undefined; bruit.buffers = {}; boutonsBruits(); },
-  etat: () => ({deverrouille: etat.deverrouille, ouvert: etat.ouvert, voixEnCours: etat.voixEnCours, courant: etat.courant, musique: etat.musiqueVoulue, messages: messages().map(m => m.id), absent: etat.absent, enAttente: etat.enAttente, appel: etat.appel ? etat.appel.phase : null, appelId: etat.appel?.id || null, manques: [...etat.manques], sonnerie: etat.sonnerie, effets: [...bruit.joues], effetsPossibles: [...EFFETS]})};
+  etat: () => ({deverrouille: etat.deverrouille, ouvert: etat.ouvert, voixEnCours: etat.voixEnCours, courant: etat.courant, musique: etat.musiqueVoulue, messages: messages().map(m => m.id), absent: etat.absent, enAttente: etat.enAttente, appel: etat.appel ? etat.appel.phase : null, appelId: etat.appel?.id || null, manques: [...etat.manques], sonnerie: etat.sonnerie, effets: [...bruit.joues], effetsPossibles: [...EFFETS], annonce: etat.annonceCourante?.id || null, revelations: etat.annonces.map(a => a.id)})};
 })();

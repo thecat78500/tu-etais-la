@@ -149,3 +149,31 @@ body.plateau-ouvert{overflow:hidden}
 .pl-curseur{display:grid;grid-template-columns:5.2em minmax(0,1fr);align-items:center;gap:10px}
 .pl-curseur label{font:400 12px/1 var(--etiquette);letter-spacing:.14em;color:var(--papier-doux);text-transform:uppercase}
 .pl-curseur input{width:100%;height:32px;accent-color:var(--braise);background:transparent}
+/* --- Annonce d'un pouvoir révélé à toute la table. */
+#plateau>.pl-annonce{position:absolute;left:50%;top:clamp(84px,12vh,120px);transform:translateX(-50%);z-index:7;display:grid;gap:8px;width:min(780px,92vw);padding:20px 26px 18px;border:1px solid var(--braise);border-left-width:5px;background:linear-gradient(180deg,rgba(26,20,12,.97),rgba(10,12,13,.97));box-shadow:0 0 0 1px rgba(0,0,0,.5),0 22px 70px rgba(0,0,0,.7),0 0 46px rgba(224,164,90,.22);animation:annonce .7s cubic-bezier(.2,.8,.2,1) both}
+#plateau>.pl-annonce[hidden]{display:none}
+.pl-annonce[data-type="rempart"]{border-color:var(--rouille)}
+.pl-annonce-etiquette{font:400 12px/1 var(--etiquette);letter-spacing:.3em;text-transform:uppercase;color:var(--braise)}
+.pl-annonce strong{font:400 clamp(30px,3.6vw,48px)/1.05 var(--titre)}
+.pl-annonce p{margin:0;font:italic 400 clamp(17px,1.8vw,22px)/1.45 var(--texte);color:var(--papier-doux)}
+.pl-annonce blockquote{margin:4px 0 2px;padding:12px 18px;border-left:2px solid var(--braise);background:rgba(224,164,90,.08);font:400 clamp(18px,2vw,24px)/1.4 var(--texte);color:var(--braise-vive)}
+.pl-annonce blockquote[hidden]{display:none}
+.pl-annonce button{justify-self:end;min-height:52px;padding:0 24px;border:1px solid var(--braise);background:rgba(224,164,90,.12);font:400 14px/1 var(--etiquette);letter-spacing:.14em;text-transform:uppercase}
+@keyframes annonce{0%{opacity:0;transform:translate(-50%,-26px) scale(.97)}100%{opacity:1;transform:translate(-50%,0)}}
+.pl-pouvoirs{margin-top:16px;border-top:1px solid var(--trait);padding-top:12px}
+.pl-pouvoirs[hidden]{display:none}
+.pl-pouvoirs h3{margin:0 0 8px;font:400 12px/1 var(--etiquette);letter-spacing:.2em;text-transform:uppercase;color:var(--papier-doux)}
+#pl-pouvoirs-liste{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+#pl-pouvoirs-liste li{padding:12px 16px;border:1px solid var(--trait);background:rgba(239,230,210,.03)}
+#pl-pouvoirs-liste strong{font:400 19px/1.2 var(--titre)}#pl-pouvoirs-liste p{margin:4px 0 0;font:italic 400 16px/1.45 var(--texte);color:var(--papier-doux)}
+
+/* Compteur d'erreurs de l'énigme et proximité de l'entité. */
+.pl-erreurs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px clamp(22px,3vw,48px);margin:14px 0 0}
+.pl-erreurs[hidden]{display:none}
+.pl-erreurs-etiquette{display:block;font:400 11px/1 var(--etiquette);letter-spacing:.2em;text-transform:uppercase;color:var(--papier-doux)}
+.pl-erreurs ol{list-style:none;display:flex;gap:10px;margin:9px 0 0;padding:0}
+#pl-erreurs-points li{width:18px;height:18px;border-radius:50%;border:1px solid var(--rouille);transition:background .6s,box-shadow .6s}
+#pl-erreurs-points li.plein{background:var(--rouille);box-shadow:0 0 14px rgba(190,70,50,.6)}
+#pl-proximite li{width:9px;height:24px;border-radius:5px;border:1px solid var(--trait);transition:background .6s,box-shadow .6s}
+#pl-proximite li.plein{background:linear-gradient(var(--rouille),#3a1410);border-color:var(--rouille);box-shadow:0 0 12px rgba(190,70,50,.5)}
+.pl-annonce[data-type="approche"]{border-color:var(--rouille)}
