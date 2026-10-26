@@ -11,7 +11,7 @@
  const TEXTE_ANCIEN = 'Vous m’entendez ? C’est Sally. Je ne sais pas combien de temps ce message restera le même. Je suis encore dans la maison. Mais les pièces ne donnent plus aux mêmes endroits. Vous avez chacun gardé un souvenir de cette nuit. Seul, il ne vous servira à rien. Rassemblez-les. Et si une voix vous demande de choisir à ma place… cherchez d’abord ce qu’elle vous cache.';
  const TEXTE_SCEAU = 'Une nouvelle pièce du dossier est accessible. Laissez chacun la regarder avant de raconter ce qu’elle signifie. Certains détails confirment un souvenir. D’autres ne font que lui ressembler. Vous pouvez encore faire la différence.';
  const SOURCES = {
-  accueil: [{src: 'assets/audio/ACCUEIL_SALLY.mp3', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/ACCUEIL_SALLY.wav', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/sally-introduction.mp3', texte: TEXTE_ANCIEN}],
+  accueil: [{src: 'assets/audio/ACCUEIL_SALLY.mp3', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/ACCUEIL_SALLY.wav', texte: TEXTE_ACCUEIL}, {src: 'assets/audio/sally-introduction.mp3', texte: TEXTE_ANCIEN}, {src: 'assets/audio/sally-introduction.MP3', texte: TEXTE_ANCIEN}],
   sceau: [{src: 'assets/audio/COMMUN_SALLY_EVENEMENT_preuve.mp3', texte: TEXTE_SCEAU}, {src: 'assets/audio/COMMUN_SALLY_EVENEMENT_preuve.wav', texte: TEXTE_SCEAU}]
  };
  const voix = $('pl-audio-voix'), musique = $('pl-audio-musique');
@@ -43,7 +43,7 @@
   const liste = [{id: 'accueil', titre: 'Le message d’accueil', sources: SOURCES.accueil}];
   const fin=conclusion();
   for(let n = 1; n <= Math.min(etat.resolues, fin?4:5); n++)liste.push({id:'sceau-'+n,titre:`Le sceau ${ROMAINS[n-1]} cède`,sources:SOURCES.sceau});
-  if(fin)liste.push({...fin,sources:['wav','mp3'].map(ext=>({src:`assets/audio/fin-porte-${fin.issue}.${ext}`,texte:fin.texte}))});
+  if(fin)liste.push({...fin,sources:['wav','mp3','MP3'].map(ext=>({src:`assets/audio/fin-porte-${fin.issue}.${ext}`,texte:fin.texte}))});
   return liste;
  }
  const messageDe = id => messages().find(m => m.id === id);
@@ -325,7 +325,8 @@
    let echoue = false;
    const echec = () => { if(echoue || jeton !== etat.jeton) return; echoue = true; essayer(i + 1); };
    voix.onerror = echec; voix.onended = () => { if(jeton === etat.jeton) finVoix(); };
-   etat.texteActuel = source.texte; voix.src = source.src; regler();
+   // Recharger l'enregistrement publié, même après un remplacement sous le même nom.
+   etat.texteActuel = source.texte; voix.src = source.src + '?lecture=' + Date.now(); regler();
    const p = voix.play(); if(p && p.catch) p.catch(echec);
    rendre();
   };
