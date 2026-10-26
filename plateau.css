@@ -256,6 +256,16 @@ body.plateau-ouvert{overflow:hidden}
 @media(max-width:600px){.pl-fin-scene{grid-template-columns:76px minmax(0,1fr);padding:10px 0 16px;gap:16px}.pl-fin-seuil{width:70px;height:105px}#pl-fin-victoire{font-size:27px}#pl-fin-presage{font-size:15px}#pl-fin-recit{font-size:16px}.pl-fin #pl-portes-liste li>.pl-porte-visuel{height:75px}}
 
 /* Une voix de conclusion prend la ligne, avec son identité propre. */
+/* Des traces dans le plâtre : les voix restent accessibles sans encombrer l'énigme. */
+#plateau #pl-mur-ouvrir{align-self:flex-start;flex-shrink:0;min-height:44px;padding:8px 16px;margin:0 0 12px;border:1px solid var(--trait);background:rgba(239,230,210,.04);color:var(--papier)}
+#plateau #pl-mur-ouvrir:focus-visible{outline:2px solid var(--braise);outline-offset:4px}
+#pl-mur{padding:0 0 24px;border-bottom:1px solid var(--trait);margin-bottom:24px}
+#pl-mur>p{max-width:65ch;color:var(--papier-doux);font-size:16px;line-height:1.55}
+#pl-mur h3{font:400 28px/1.2 var(--titre);margin:8px 0 14px}
+#pl-mur-liste{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:18px}
+#pl-mur-liste li{border-left:2px solid var(--papier-doux);padding:8px 0 8px 18px;background:linear-gradient(90deg,rgba(239,230,210,.055),transparent)}
+#pl-mur-liste span{font:400 13px/1.4 var(--etiquette);color:var(--papier-doux)}
+#pl-mur-liste blockquote{white-space:pre-line;overflow-wrap:anywhere;margin:8px 0 0;max-width:60ch;font:italic 400 20px/1.55 var(--texte);color:var(--papier)}
 #plateau #pl-fin-appel{min-height:44px;margin:6px 0 0 18px;padding:8px 14px;border:1px solid var(--fin-accent);border-radius:2px;background:rgba(var(--fin-rgb),.08);color:var(--fin-accent);font:400 15px/1.3 var(--texte)}
 #plateau #pl-fin-appel:focus-visible{outline:2px solid var(--fin-accent);outline-offset:4px}
 .pl-appel[data-conclusion="true"]{background:radial-gradient(ellipse at 50% 36%,rgba(var(--fin-rgb,234,193,113),.21),transparent 65%),rgba(4,5,6,.97)}

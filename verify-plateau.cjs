@@ -304,6 +304,41 @@ const CLE='f'.repeat(64);
   await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);assert.equal((await page.evaluate(()=>window.Plateau.etat())).appelId,'accueil');
   donneesPortes.progression.resolues=5;donneesPortes.progression.portes={...portes,phase:'fin',resultat:{porte:'Ronce',issue:2,texte:'L’entité franchit le passage.'}};
   await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);assert.equal((await page.evaluate(()=>window.Plateau.etat())).appelId,'conclusion-2');
+  // Mur : notification d'une nouvelle gravure, registre persistant et contenu traité comme texte.
+  await page.locator('#pl-appel-ignorer').click();
+  donneesPortes.progression.mur=[];
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  await page.locator('#pl-annonce-fermer').evaluate(b=>b.click());
+  assert(await page.locator('#pl-mur-ouvrir').isVisible());
+  await page.locator('#pl-mur-ouvrir').click();assert(await page.locator('#pl-mur-vide').isVisible());
+  await page.locator('#pl-feuille-fermer').click();
+  const gravure={id:'mur-1',etape:2,texte:'LUNE se trouve immédiatement avant VERRE. <img src=x onerror="window.__fuite=true">'};
+  donneesPortes.progression.mur=[gravure];
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert.equal(await page.locator('#pl-annonce-titre').innerText(),'Une voix dans le mur');
+  assert((await page.locator('#pl-annonce-fragment').innerText()).includes(gravure.texte));
+  await page.locator('#pl-annonce-fermer').click();
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert(await page.locator('#pl-annonce').isHidden(),'pas de répétition à chaque synchronisation');
+  await page.locator('#pl-mur-ouvrir').click();
+  assert.equal(await page.locator('#pl-mur-liste li').count(),1);
+  assert.equal(await page.locator('#pl-mur-liste blockquote').innerText(),gravure.texte);
+  assert.equal(await page.locator('#pl-mur-liste img').count(),0,'HTML échappé');
+  for(const viewport of [{width:1194,height:834},{width:834,height:1194},{width:390,height:844}]){
+   await page.setViewportSize(viewport);
+   assert(await page.evaluate(()=>document.getElementById('pl-feuille').scrollWidth<=innerWidth),'mur sans débordement horizontal');
+  }
+  await page.setViewportSize({width:1194,height:834});
+  gravure.texte='LUNE se trouve immédiatement avant VERRE.';
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  await page.screenshot({path:path.join(root,'captures','mur-registre-ipad.png')});
+  await page.locator('#pl-feuille-fermer').click();
+  await page.evaluate(d=>{window.Plateau.fermer();window.Plateau.mettreAJour(d);window.Plateau.ouvrir()},donneesPortes);
+  assert(await page.locator('#pl-annonce').isHidden(),'retour au plateau sans rejouer une gravure');
+  donneesPortes.partie.code='MMURNEUF';donneesPortes.progression.resolues=0;donneesPortes.progression.portes=null;donneesPortes.progression.mur=[];
+  await page.evaluate(d=>window.Plateau.mettreAJour(d),donneesPortes);
+  assert.equal(await page.locator('#pl-mur-liste li').count(),0,'nouvelle partie sans voix de la précédente');
+  assert.equal((await page.evaluate(()=>window.Plateau.etat())).annonce,null,'aucune annonce héritée de la partie précédente');
   assert.deepEqual(erreurs,[]);
   console.log('PASS plateau : accueil automatique au lancement (repli si le fichier manque), texte lisible, réécoute et liste des voix, ambiance et volume, voix à chaque sceau sans répétition, carnet, sans défilement en paysage/portrait/iPad Pro, boutons tactiles, retour à la régie, appel entrant qu’il faut décrocher (sonnerie, décrocher, raccrocher, ignorer, appel manqué rappelable, délai sans réponse), invitation si le son n’est pas déverrouillé.');
  }finally{await browser.close();serveur.close()}

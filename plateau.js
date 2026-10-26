@@ -162,6 +162,7 @@
   // Pouvoir révélé à la table : trois notes qui s'étirent, comme une présence qui se manifeste.
   // L'entité s'approche : deux coups sourds, un grincement lent, un souffle froid.
   approche: t => { coup(t, 70, 0.5, 0.28); coup(t + 0.55, 64, 0.55, 0.3); grincement(t + 1, 120, 70, 1.5, 0.12); souffleBref(t, 2.4, 320, 0.12, 2); },
+  gravure: t => { grincement(t, 600, 250, 1.1, 0.1); souffleBref(t, 1.4, 1100, 0.06, 2); },
   pouvoir: t => { const c = etat.ctx; [[293.7, 0], [440, 0.22], [587.3, 0.44]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.05, 2.2, 0.12); o.start(t + decalage); o.stop(t + decalage + 2.3); }); souffleBref(t, 2.4, 900, 0.1, 2); }
  };
  async function jouerEffet(id){
@@ -338,13 +339,14 @@
   talisman: {titre: 'Un talisman s’illumine', texte: 'Quelqu’un à cette table certifie un fragment : il est authentique.'},
   rempart: {titre: 'Un rempart se lève', texte: 'La Présence se tait pendant dix minutes.'},
   // Venue des erreurs de la table (pas d'un pouvoir) : repérée en comparant le compteur d'une synchronisation à l'autre.
-  approche: {etiquette: 'L’entité', titre: 'L’entité s’est rapprochée', texte: 'Une erreur l’a attirée. Quelque part dans cette maison, un souvenir vacille.'}
+  approche: {etiquette: 'L’entité', titre: 'L’entité s’est rapprochée', texte: 'Une erreur l’a attirée. Quelque part dans cette maison, un souvenir vacille.'},
+  mur: {etiquette: 'Le mur', titre: 'Une voix dans le mur', texte: 'Un souvenir vient d’être gravé. À vous de le confronter aux autres fragments.'}
  };
  function afficherAnnonce(){
   if(etat.annonceCourante || !etat.fileAnnonces.length) return;
   const a = etat.annonceCourante = etat.fileAnnonces.shift();
   // Le son d'annonce ne couvre jamais une voix ni un appel : le bandeau, lui, s'affiche toujours.
-  if(etat.deverrouille && !etat.voixEnCours && !etat.appel && !etat.sonnerie) jouerEffet(a.type === 'approche' ? 'approche' : 'pouvoir');
+  if(etat.deverrouille && !etat.voixEnCours && !etat.appel && !etat.sonnerie) jouerEffet(a.type === 'approche' ? 'approche' : a.type === 'mur' ? 'gravure' : 'pouvoir');
   clearTimeout(etat.minuterieAnnonce); etat.minuterieAnnonce = setTimeout(masquerAnnonce, 14000);
   rendre();
  }
@@ -367,6 +369,17 @@
   rendre();
  }
  function surveillerPouvoirs(){ clearInterval(etat.sondePouvoirs); etat.sondePouvoirs = null; if(etat.ouvert) etat.sondePouvoirs = setInterval(() => { try { window.lirePouvoirs?.(); } catch {} }, 6000); }
+ function suivreMur(){
+  const gravures=etat.data?.progression?.mur;
+  if(!Array.isArray(gravures)||!etat.code)return;
+  const cle='tu-etais-la-mur-'+etat.code,connues=lireSession(cle),ids=gravures.map(g=>g.id);
+  ecrireSession(cle,ids);
+  // Une reprise affiche le registre sans rejouer ses annonces historiques.
+  if(!Array.isArray(connues)||!etat.ouvert)return;
+  const nouvelles=gravures.filter(g=>!connues.includes(g.id));
+  etat.fileAnnonces.push(...nouvelles.map(g=>({id:g.id,type:'mur',fragment:`Énigme ${g.etape} — ${g.texte}`})));
+  afficherAnnonce();
+ }
 
  // --- Rendu.
  function echapper(t){ return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
@@ -455,6 +468,12 @@
    $('pl-annonce-fragment').hidden = !annonce.fragment; $('pl-annonce-fragment').textContent = annonce.fragment ? '« ' + annonce.fragment + ' »' : '';
    $('pl-annonce').dataset.type = annonce.type;
   }
+  const gravures=data?.progression?.mur;
+  $('pl-mur-ouvrir').hidden=!Array.isArray(gravures);
+  $('pl-mur-ouvrir').textContent=`Le mur${gravures?.length?' — '+gravures.length+' voix':''}`;
+  $('pl-mur').hidden=!Array.isArray(gravures);
+  $('pl-mur-vide').hidden=!!gravures?.length;
+  $('pl-mur-liste').innerHTML=(gravures||[]).map(g=>`<li><span>Énigme ${echapper(g.etape)}</span><blockquote>${echapper(g.texte)}</blockquote></li>`).join('');
   const revelations = etat.annonces.filter(a => TEXTES_ANNONCE[a.type]);
   $('pl-pouvoirs').hidden = !revelations.length;
   $('pl-pouvoirs-liste').innerHTML = revelations.map(a => `<li><strong>${echapper(TEXTES_ANNONCE[a.type].titre)}</strong>${a.fragment ? `<p>« ${echapper(a.fragment)} »</p>` : `<p>${echapper(TEXTES_ANNONCE[a.type].texte)}</p>`}</li>`).join('');
@@ -489,11 +508,12 @@
   etat.data = data;
   const partie = data?.partie;
   if(!partie || partie.statut !== 'en_cours'){ if(etat.ouvert) fermer(); etat.code = null; etat.appel = null; etat.manques = []; stopperMinuteries(); etat.erreurs = null; return; }
-  if(etat.code !== partie.code){ etat.code = partie.code; etat.courant = null; etat.enAttente = null; etat.appel = null; stopperMinuteries(); etat.manques = lireManques(); }
+  if(etat.code !== partie.code){ etat.code = partie.code; etat.courant = null; etat.enAttente = null; etat.appel = null; stopperMinuteries(); etat.manques = lireManques(); clearTimeout(etat.minuterieAnnonce); etat.fileAnnonces=[]; etat.annonceCourante=null; etat.annonces=[]; }
   etat.resolues = data.progression?.resolues || 0;
   const er = data.progression?.erreurs;
   etat.erreurs = er && Number.isFinite(er.declenchements_total) ? er : null;
   suivreApproches();
+  suivreMur();
   rendre(); evenements();
  }
  function ouvrir(){
@@ -526,6 +546,7 @@
  $('pl-rejouer').addEventListener('click', () => { if(etat.appel?.phase === 'sonne') return; if(etat.voixEnCours){ arreterVoix(); rendre(); } else jouer(etat.courant || 'accueil', false); });
  $('pl-voix').addEventListener('click', () => { const f = $('pl-feuille'); f.hidden = !f.hidden; $('pl-voix').setAttribute('aria-expanded', String(!f.hidden)); });
  $('pl-feuille-fermer').addEventListener('click', () => { $('pl-feuille').hidden = true; $('pl-voix').setAttribute('aria-expanded', 'false'); });
+ $('pl-mur-ouvrir').addEventListener('click',()=>{ $('pl-feuille').hidden=false; $('pl-voix').setAttribute('aria-expanded','true'); $('pl-mur').scrollIntoView({block:'start'}); $('pl-mur-titre').focus({preventScroll:true}); });
  $('pl-feuille-liste').addEventListener('click', e => {
   const b = e.target.closest('button[data-message]'); if(!b || etat.appel?.phase === 'sonne') return;
   deverrouiller(); if(etat.manques.includes(b.dataset.message)) rappeler(b.dataset.message); else jouer(b.dataset.message, false);
@@ -548,7 +569,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 9 : appels de conclusion de Sally et de l’entité, cinq ambiances de fin et gagnants révélés, portes illustrées, vote secret, bruits, sons d’événements, fichiers wav, niveau de la musique, annonces des pouvoirs, compteur d’erreurs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 10 : mur de souvenirs anonyme, appels de conclusion de Sally et de l’entité, cinq ambiances de fin, portes illustrées, vote secret, sons, pouvoirs et approche de l’entité.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
