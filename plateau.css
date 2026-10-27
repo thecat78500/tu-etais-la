@@ -1,4 +1,42 @@
 /* Plateau de jeu de l'iPad : une veillée à la bougie. Un seul écran, sans défilement, gros boutons tactiles. */
+/* Les preuves reprennent les matières et les caractères du plateau existant. */
+#pl-preuves-reserve[hidden]{display:none}
+#pl-preuves-reserve{margin-top:18px}
+#pl-preuves-reserve .pl-message-sally{padding:14px 18px;border-left:2px solid var(--braise);background:rgba(239,230,210,.045)}
+#pl-preuves-reserve header{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+#pl-preuves-reserve time{font:400 14px var(--etiquette);color:var(--papier-doux)}
+#pl-preuves-reserve .pl-message-sally p{white-space:pre-line;margin:8px 0 0;font:400 clamp(17px,1.7vw,22px)/1.5 var(--texte)}
+#plateau #pl-photo-ouvrir{min-height:44px;margin-top:12px;padding:8px 0;background:none;border:0;border-bottom:1px solid var(--trait);text-align:left;color:var(--braise-vive);font:400 17px var(--texte)}
+#pl-preuves-reserve .pl-evenements-reserve{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:12px 0;padding:0}
+#pl-preuves-reserve .pl-evenements-reserve li{padding:8px 12px;border:1px solid var(--trait);font:400 18px/1.3 var(--texte)}
+#pl-preuves-reserve .pl-reponse-reserve{font:italic 400 16px/1.5 var(--texte);color:var(--papier-doux)}
+#plateau.pl-preuves-reserve .pl-vue img{object-fit:contain;animation:none;filter:none}
+#plateau.pl-preuves-reserve #pl-titre{font-size:clamp(32px,3.7vw,50px)}
+#plateau.pl-preuves-reserve #pl-enonce{font-size:clamp(18px,1.8vw,24px)}
+#plateau.pl-preuves-reserve .pl-conseil{display:none}
+#plateau #pl-photo-ouvrir:focus-visible{outline:2px solid var(--braise);outline-offset:4px}
+#pl-photo-dialog{color:#efe6d2;background:#0a0c0d;border:1px solid #b9b2a1;max-width:min(1100px,95vw);max-height:94dvh;padding:20px;overflow:auto;font:18px/1.5 'Spectral',Georgia,serif}
+#pl-photo-dialog::backdrop{background:rgba(0,0,0,.88)}
+#pl-photo-dialog header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:16px}
+#pl-photo-dialog h2{margin:0;font:400 26px/1.2 'IM Fell English',Georgia,serif}
+#pl-photo-dialog button{font:inherit;padding:8px 16px;min-height:44px;color:inherit;background:none;border:1px solid #b9b2a1;cursor:pointer}
+#pl-photo-dialog button:focus-visible{outline:2px solid #e0a45a;outline-offset:4px}
+#pl-photo-dialog img{display:block;width:100%;max-height:70dvh;object-fit:contain}
+#pl-photo-dialog p{margin-bottom:0;color:#b9b2a1}
+@media(max-width:600px){#pl-photo-dialog header{align-items:flex-start;flex-direction:column}#pl-photo-dialog{padding:12px}#pl-photo-dialog h2{font-size:22px}}
+@media(max-width:600px){
+ #plateau.pl-preuves-reserve .pl-centre{grid-template-rows:minmax(120px,25vh) minmax(0,1fr)}
+ #plateau.pl-preuves-reserve .pl-haut-droite{gap:8px;min-width:0}
+ #plateau.pl-preuves-reserve .pl-voix-etat{font-size:10px;max-width:90px;letter-spacing:0}
+ #plateau.pl-preuves-reserve .pl-marque small{font-size:9px;letter-spacing:.1em}
+ #plateau.pl-preuves-reserve #pl-regie{padding:0 10px;font-size:12px}
+ #plateau.pl-preuves-reserve .pl-dock{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 12px}
+ #plateau.pl-preuves-reserve .pl-dock button{min-height:58px;padding:6px 8px}
+ #plateau.pl-preuves-reserve .pl-bouton-texte{font-size:16px}
+ #plateau.pl-preuves-reserve .pl-dock small{font-size:9px;letter-spacing:0}
+ #plateau.pl-preuves-reserve .pl-dock>.pl-volume{grid-column:1/-1;padding:4px 10px}
+ #plateau.pl-preuves-reserve .pl-curseur input{height:28px}
+}
 #plateau{--encre:#0a0c0d;--encre-2:#11171a;--papier:#efe6d2;--papier-doux:#b9b2a1;--braise:#e0a45a;--braise-vive:#f2c27a;--rouille:#c1806d;--trait:rgba(239,230,210,.16);
  --titre:'IM Fell English','Iowan Old Style','Palatino Linotype',Georgia,serif;--texte:'Spectral','Iowan Old Style',Georgia,serif;--etiquette:'Courier Prime','Courier New',monospace;
  position:fixed;inset:0;z-index:60;display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;height:100dvh;overflow:hidden;color:var(--papier);font-family:var(--texte);

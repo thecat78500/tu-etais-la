@@ -383,19 +383,61 @@
 
  // --- Rendu.
  function echapper(t){ return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
+ // Preuves publiques de la nouvelle chronologie : activation explicite par le serveur.
+ // Ni le relevé du couloir, ni l'appel privé, ni la solution ne figurent ici.
+ const PHOTO_RESERVE = 'assets/preuves/affaire-01/reserve-vide.png';
+ const EVENEMENTS_RESERVE = ['Appel', 'Panneau déplacé', 'Porte refermée', 'Entrée', 'Message'];
+ function supportReserve(data){
+  const actif=data?.progression?.active, support=actif?.support_public;
+  const message=support?.message;
+  return Number(data?.partie?.scenario_id)===1 && Number(actif?.etape)===1 && !data?.progression?.portes &&
+   support?.type==='affaire-01-chronologie-v1' && /^([01]\d|2[0-3]):[0-5]\d$/.test(message?.heure||'') &&
+   Array.isArray(message?.lignes) && message.lignes.length===3 && message.lignes.every(l=>typeof l==='string'&&l.length>0&&l.length<=200)
+   ? support : null;
+ }
+ function rendrePreuvesReserve(data){
+  let bloc=$('pl-preuves-reserve');
+  const support=supportReserve(data), actif=!!support;
+  $('plateau').classList.toggle('pl-preuves-reserve',actif);
+  if(!actif){
+   if(bloc)bloc.hidden=true;
+   if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
+   $('pl-image').alt='Illustration d’ambiance de l’affaire';
+   return;
+  }
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-reserve';bloc.setAttribute('aria-label','Les traces communes');
+   bloc.innerHTML='<article class="pl-message-sally" aria-label="Message de Sally"><header><strong>Sally</strong><time></time></header><p></p></article><button id="pl-photo-ouvrir" type="button" aria-haspopup="dialog">Examiner la photo de la réserve</button><h3>Les cinq événements à remettre dans l’ordre</h3><ul class="pl-evenements-reserve">'+EVENEMENTS_RESERVE.map(e=>'<li>'+e+'</li>').join('')+'</ul><p class="pl-reponse-reserve">Recoupez vos preuves privées, puis envoyez votre ordre à Sally sur Telegram.</p>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-photo-dialog';dialogue.setAttribute('aria-labelledby','pl-photo-titre');
+   dialogue.innerHTML='<header><h2 id="pl-photo-titre">La réserve après sa disparition</h2><button type="button">Fermer la photo</button></header><img src="'+PHOTO_RESERVE+'" alt="La réserve est vide. Un panneau écarté révèle un renfoncement maçonné au fond de la pièce."><p>Photographie prise après l’ouverture de la porte par le groupe.</p>';
+   document.body.append(dialogue);
+   dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-photo-ouvrir').addEventListener('click',()=>{if(supportReserve(etat.data)&&!dialogue.open)dialogue.showModal()});
+  }
+  bloc.hidden=false;
+  bloc.querySelector('time').textContent=support.message.heure;
+  bloc.querySelector('time').dateTime=support.message.heure;
+  bloc.querySelector('.pl-message-sally p').textContent=support.message.lignes.join('\n');
+  if($('pl-image').getAttribute('src')!==PHOTO_RESERVE)$('pl-image').src=PHOTO_RESERVE;
+  $('pl-image').alt='La réserve vide : un panneau déplacé au fond de la pièce et des traces dans la poussière.';
+  $('pl-vue').hidden=false;
+  $('pl-trace').textContent='La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.';
+ }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
   ov.hidden = !etat.ouvert; document.body.classList.toggle('plateau-ouvert', etat.ouvert);
   if(!etat.ouvert) return;
   const data = etat.data, partie = data?.partie, prog = data?.progression;
   const affaire = etat.affaires?.find(a => a.id === partie?.scenario_id);
-  $('pl-titre-affaire').textContent = affaire?.title || 'La maison';
+  $('pl-titre-affaire').textContent = affaire?.title || (supportReserve(data)?'La porte qu’on n’a pas ouverte':'La maison');
   const image = $('pl-image'), vue = $('pl-vue');
-  if(affaire?.image){ if(image.getAttribute('src') !== affaire.image) image.setAttribute('src', affaire.image); vue.hidden = false; $('pl-trace').textContent = affaire.intro || ''; } else vue.hidden = true;
+  if(affaire?.image && !supportReserve(data)){ if(image.getAttribute('src') !== affaire.image) image.setAttribute('src', affaire.image); vue.hidden = false; $('pl-trace').textContent = affaire.intro || ''; } else vue.hidden = true;
   const actif = prog?.active, resolues = prog?.resolues || 0;
   $('pl-sceau-num').textContent = actif ? `SCEAU ${ROMAINS[actif.etape - 1]} SUR V` : 'LES CINQ SCEAUX SONT OUVERTS';
   $('pl-titre').textContent = actif ? actif.titre : 'Le rituel est prêt.';
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
+  rendrePreuvesReserve(data);
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
   const er = etat.erreurs, vers = Math.min(3, er?.vers_seuil || 0), proche = Math.min(5, er?.proximite || 0);
@@ -522,6 +564,7 @@
   try { window.lirePouvoirs?.(); } catch {}
  }
  function fermer(){
+  if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
   etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
   clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
@@ -569,7 +612,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 10 : mur de souvenirs anonyme, appels de conclusion de Sally et de l’entité, cinq ambiances de fin, portes illustrées, vote secret, sons, pouvoirs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 11 : preuves publiques de la réserve, mur de souvenirs anonyme, appels de conclusion de Sally et de l’entité, cinq ambiances de fin, portes illustrées, vote secret, sons, pouvoirs et approche de l’entité.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
