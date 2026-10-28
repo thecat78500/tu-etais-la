@@ -464,6 +464,59 @@
   $('pl-vue').hidden=false;
   $('pl-trace').textContent='La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.';
  }
+ function rendrePreuvesPassage(data){
+  const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===2&&data.progression.active.support_public?.type==='affaire-01-passage-v1'&&!data.progression.portes;
+  let bloc=$('pl-preuves-passage');
+  if(!actif){if(bloc)bloc.hidden=true;if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();return}
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-passage';bloc.setAttribute('aria-label','Le plan commun de la réserve');
+   bloc.innerHTML='<button id="pl-plan-ouvrir" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Aperçu du relevé actuel" width="960" height="1280"><span>Consulter le plan actuel<small>Document commun — comparer aux archives reçues dans Telegram</small></span></button>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-plan-dialog';dialogue.className='pl-document-dialog';dialogue.setAttribute('aria-labelledby','pl-plan-titre');
+   dialogue.innerHTML='<header><h2 id="pl-plan-titre">Le relevé actuel des pièces de service</h2><button type="button">Fermer le plan</button></header><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Plan actuel : une seule porte ordinaire dans la réserve, des étagères sur les côtés et un mur plein au fond. Atelier et escalier de service à côté." width="960" height="1280">';
+   document.body.append(dialogue);dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-plan-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
+  }
+  bloc.hidden=false;
+ }
+ function rendrePreuvesChemin(data){
+  const support=data?.progression?.active?.support_public;
+  const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===3&&support?.type==='affaire-01-chemin-v1'&&!data.progression.portes;
+  let bloc=$('pl-preuves-chemin');
+  if(!actif){if(bloc)bloc.hidden=true;if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();return}
+  $('pl-enonce').textContent='Guidez Sally de la Réserve à la Galerie. Suivez les flèches sans repasser par un lieu. Vos relevés privés indiquent les passages interdits et les contrôles obligatoires.\nRecoupez vos indices, puis envoyez le trajet dans Telegram : « je propose… ».';
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-chemin';bloc.setAttribute('aria-label','Le plan commun des accès dans l’envers');
+   bloc.innerHTML='<button id="pl-chemin-ouvrir" class="pl-plan-commun" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/chemin-v1/plan-envers.png" alt="Aperçu du plan des accès" width="1280" height="1280"><span>Consulter le plan de l’envers<small>De la Réserve à la Galerie — recoupez vos relevés privés dans Telegram</small></span></button>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-chemin-dialog';dialogue.className='pl-document-dialog';dialogue.setAttribute('aria-labelledby','pl-chemin-titre');
+   dialogue.innerHTML='<header><h2 id="pl-chemin-titre">Le chemin dans l’envers</h2><button type="button">Fermer le plan</button></header><img src="assets/preuves/affaire-01/chemin-v1/plan-envers.png" alt="Plan dirigé de six lieux : Réserve, Office, Cave, Palier, Vestibule et Galerie. Les accès sont détaillés dans la liste ci-dessous." width="1280" height="1280"><details><summary>Lire la liste des accès</summary><ul id="pl-chemin-acces"></ul></details>';
+   document.body.append(dialogue);dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-chemin-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
+  }
+  const liste=$('pl-chemin-acces');liste.replaceChildren();
+  if(Array.isArray(support.liaisons))for(const liaison of support.liaisons){if(!Array.isArray(liaison)||liaison.length!==2||!liaison.every(x=>typeof x==='string'))continue;const item=document.createElement('li');item.textContent=liaison.join(' → ');liste.append(item)}
+  bloc.hidden=false;
+ }
+ function rendrePreuvesRetour(data){
+  const support=data?.progression?.active?.support_public;
+  const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===4&&support?.type==='affaire-01-retour-v1'&&!data.progression.portes;
+  let bloc=$('pl-preuves-retour');
+  if(!actif){if(bloc)bloc.hidden=true;if($('pl-retour-dialog')?.open)$('pl-retour-dialog').close();return}
+  $('pl-enonce').textContent='Sally a atteint la galerie. Reconstituez les cinq gestes de préparation grâce à vos feuillets privés, puis envoyez leur ordre dans Telegram : « je propose… ».\nCette préparation préserve le rempart. Aucune porte ne s’ouvre avant le choix final.';
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-retour';bloc.setAttribute('aria-label','Les instructions de préparation du retour');
+   bloc.innerHTML='<ul id="pl-retour-instructions" class="pl-instructions-retour" aria-label="Instructions mélangées"></ul><button id="pl-retour-ouvrir" class="pl-plan-commun" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/retour-v1/gestes-preparation.png" alt="Aperçu des gestes de préparation" width="960" height="1280"><span>Consulter les gestes de préparation<small>Notice commune — confrontez les raccords reçus dans Telegram</small></span></button>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-retour-dialog';dialogue.className='pl-document-dialog';dialogue.setAttribute('aria-labelledby','pl-retour-titre');
+   dialogue.innerHTML='<header><h2 id="pl-retour-titre">Préparer le retour sous protection</h2><button type="button">Fermer la notice</button></header><img src="assets/preuves/affaire-01/retour-v1/gestes-preparation.png" alt="Cinq instructions mélangées : attendre le choix, préparer, vérifier, raccorder et maintenir. Les relations entre elles se trouvent dans les feuillets privés." width="960" height="1280">';
+   document.body.append(dialogue);dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-retour-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
+  }
+  const liste=$('pl-retour-instructions');liste.replaceChildren();
+  if(Array.isArray(support.instructions))for(const instruction of support.instructions){if(typeof instruction!=='string'||instruction.length>80)continue;const item=document.createElement('li');item.textContent=instruction;liste.append(item)}
+  bloc.hidden=false;
+ }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
   ov.hidden = !etat.ouvert; document.body.classList.toggle('plateau-ouvert', etat.ouvert);
@@ -476,6 +529,9 @@
   $('pl-titre').textContent = actif ? actif.titre : 'Le rituel est prêt.';
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
   rendrePreuvesReserve(data);
+  rendrePreuvesPassage(data);
+  rendrePreuvesChemin(data);
+  rendrePreuvesRetour(data);
   rendreScene(data,affaire);
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
@@ -604,6 +660,9 @@
  }
  function fermer(){
   if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
+  if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();
+  if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();
+  if($('pl-retour-dialog')?.open)$('pl-retour-dialog').close();
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
   etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
   clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
@@ -651,7 +710,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 12 : scènes évolutives de l’affaire 1, une image par sceau et cinq conclusions illustrées ; preuves privées sur Telegram, vote secret et appels conservés.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 15 : préparation du retour sous protection au sceau IV ; quatre énigmes de l’affaire 1 raccordées, vote secret, scènes et appels conservés.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
