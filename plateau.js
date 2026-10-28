@@ -464,6 +464,21 @@
   $('pl-vue').hidden=false;
   $('pl-trace').textContent='La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.';
  }
+ function rendrePreuvesPassage(data){
+  const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===2&&data.progression.active.support_public?.type==='affaire-01-passage-v1'&&!data.progression.portes;
+  let bloc=$('pl-preuves-passage');
+  if(!actif){if(bloc)bloc.hidden=true;if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();return}
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-passage';bloc.setAttribute('aria-label','Le plan commun de la réserve');
+   bloc.innerHTML='<button id="pl-plan-ouvrir" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Aperçu du relevé actuel" width="960" height="1280"><span>Consulter le plan actuel<small>Document commun — comparer aux archives reçues dans Telegram</small></span></button>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-plan-dialog';dialogue.className='pl-document-dialog';dialogue.setAttribute('aria-labelledby','pl-plan-titre');
+   dialogue.innerHTML='<header><h2 id="pl-plan-titre">Le relevé actuel des pièces de service</h2><button type="button">Fermer le plan</button></header><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Plan actuel : une seule porte ordinaire dans la réserve, des étagères sur les côtés et un mur plein au fond. Atelier et escalier de service à côté." width="960" height="1280">';
+   document.body.append(dialogue);dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-plan-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
+  }
+  bloc.hidden=false;
+ }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
   ov.hidden = !etat.ouvert; document.body.classList.toggle('plateau-ouvert', etat.ouvert);
@@ -476,6 +491,7 @@
   $('pl-titre').textContent = actif ? actif.titre : 'Le rituel est prêt.';
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
   rendrePreuvesReserve(data);
+  rendrePreuvesPassage(data);
   rendreScene(data,affaire);
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
@@ -604,6 +620,7 @@
  }
  function fermer(){
   if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
+  if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
   etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
   clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
@@ -651,7 +668,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 12 : scènes évolutives de l’affaire 1, une image par sceau et cinq conclusions illustrées ; preuves privées sur Telegram, vote secret et appels conservés.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 13 : plan commun du passage effacé, scènes évolutives de l’affaire 1 et cinq conclusions illustrées ; archives privées sur Telegram, vote secret et appels conservés.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

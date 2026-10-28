@@ -1,4 +1,17 @@
 /* Plateau de jeu de l'iPad : une veillée à la bougie. Un seul écran, sans défilement, gros boutons tactiles. */
+#pl-preuves-passage[hidden]{display:none}
+#pl-preuves-passage{margin:16px 0}
+#plateau #pl-plan-ouvrir{width:100%;display:flex;align-items:center;gap:18px;padding:12px;border:1px solid var(--trait);background:rgba(239,230,210,.045);text-align:left;min-height:80px}
+#pl-plan-ouvrir img{width:76px;height:102px;object-fit:contain;flex:none}
+#pl-plan-ouvrir span{font:400 22px/1.3 var(--titre);color:var(--braise-vive)}
+#pl-plan-ouvrir small{display:block;margin-top:8px;font:400 15px/1.5 var(--texte);color:var(--papier-doux)}
+.pl-document-dialog{max-width:min(1000px,96vw);max-height:94dvh;padding:16px;color:#efe6d2;background:#0a0c0d;border:1px solid #b9b2a1;overflow:auto;font:18px/1.5 Georgia,serif}
+.pl-document-dialog::backdrop{background:rgba(0,0,0,.88)}
+.pl-document-dialog header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:12px}
+.pl-document-dialog h2{margin:0;font-weight:400;font-size:25px}
+.pl-document-dialog button{min-height:48px;padding:8px 16px;color:#efe6d2;background:#182122;border:1px solid #b9b2a1;cursor:pointer;font:18px Georgia,serif}
+.pl-document-dialog img{display:block;width:100%;height:auto}
+@media(max-width:600px){.pl-document-dialog header{align-items:flex-start;flex-direction:column}.pl-document-dialog h2{font-size:21px}}
 /* Les preuves reprennent les matières et les caractères du plateau existant. */
 #pl-preuves-reserve[hidden]{display:none}
 #pl-preuves-reserve{margin-top:18px}
