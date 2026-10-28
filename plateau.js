@@ -479,6 +479,25 @@
   }
   bloc.hidden=false;
  }
+ function rendrePreuvesChemin(data){
+  const support=data?.progression?.active?.support_public;
+  const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===3&&support?.type==='affaire-01-chemin-v1'&&!data.progression.portes;
+  let bloc=$('pl-preuves-chemin');
+  if(!actif){if(bloc)bloc.hidden=true;if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();return}
+  $('pl-enonce').textContent='Guidez Sally de la Réserve à la Galerie. Suivez les flèches sans repasser par un lieu. Vos relevés privés indiquent les passages interdits et les contrôles obligatoires.\nRecoupez vos indices, puis envoyez le trajet dans Telegram : « je propose… ».';
+  if(!bloc){
+   bloc=document.createElement('section');bloc.id='pl-preuves-chemin';bloc.setAttribute('aria-label','Le plan commun des accès dans l’envers');
+   bloc.innerHTML='<button id="pl-chemin-ouvrir" class="pl-plan-commun" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/chemin-v1/plan-envers.png" alt="Aperçu du plan des accès" width="1280" height="1280"><span>Consulter le plan de l’envers<small>De la Réserve à la Galerie — recoupez vos relevés privés dans Telegram</small></span></button>';
+   $('pl-enonce').after(bloc);
+   const dialogue=document.createElement('dialog');dialogue.id='pl-chemin-dialog';dialogue.className='pl-document-dialog';dialogue.setAttribute('aria-labelledby','pl-chemin-titre');
+   dialogue.innerHTML='<header><h2 id="pl-chemin-titre">Le chemin dans l’envers</h2><button type="button">Fermer le plan</button></header><img src="assets/preuves/affaire-01/chemin-v1/plan-envers.png" alt="Plan dirigé de six lieux : Réserve, Office, Cave, Palier, Vestibule et Galerie. Les accès sont détaillés dans la liste ci-dessous." width="1280" height="1280"><details><summary>Lire la liste des accès</summary><ul id="pl-chemin-acces"></ul></details>';
+   document.body.append(dialogue);dialogue.querySelector('button').addEventListener('click',()=>dialogue.close());
+   $('pl-chemin-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
+  }
+  const liste=$('pl-chemin-acces');liste.replaceChildren();
+  if(Array.isArray(support.liaisons))for(const liaison of support.liaisons){if(!Array.isArray(liaison)||liaison.length!==2||!liaison.every(x=>typeof x==='string'))continue;const item=document.createElement('li');item.textContent=liaison.join(' → ');liste.append(item)}
+  bloc.hidden=false;
+ }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
   ov.hidden = !etat.ouvert; document.body.classList.toggle('plateau-ouvert', etat.ouvert);
@@ -492,6 +511,7 @@
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
   rendrePreuvesReserve(data);
   rendrePreuvesPassage(data);
+  rendrePreuvesChemin(data);
   rendreScene(data,affaire);
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
@@ -621,6 +641,7 @@
  function fermer(){
   if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
   if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();
+  if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
   etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
   clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
@@ -668,7 +689,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 13 : plan commun du passage effacé, scènes évolutives de l’affaire 1 et cinq conclusions illustrées ; archives privées sur Telegram, vote secret et appels conservés.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 14 : plan des accès dans l’envers et relevés privés du sceau III ; passage effacé, scènes évolutives, vote secret et appels conservés.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

@@ -1,4 +1,12 @@
 /* Plateau de jeu de l'iPad : une veillée à la bougie. Un seul écran, sans défilement, gros boutons tactiles. */
+#pl-preuves-chemin[hidden]{display:none}
+#pl-preuves-chemin{margin:16px 0}
+#plateau .pl-plan-commun{width:100%;display:flex;align-items:center;gap:18px;padding:12px;border:1px solid var(--trait);background:rgba(239,230,210,.045);text-align:left;min-height:80px}
+.pl-plan-commun img{width:86px;height:86px;object-fit:contain;flex:none}
+.pl-plan-commun span{font:400 22px/1.3 var(--titre);color:var(--braise-vive)}
+.pl-plan-commun small{display:block;margin-top:8px;font:400 15px/1.5 var(--texte);color:var(--papier-doux)}
+#pl-chemin-dialog details{margin-top:18px}
+#pl-chemin-dialog summary{cursor:pointer;min-height:44px}
 #pl-preuves-passage[hidden]{display:none}
 #pl-preuves-passage{margin:16px 0}
 #plateau #pl-plan-ouvrir{width:100%;display:flex;align-items:center;gap:18px;padding:12px;border:1px solid var(--trait);background:rgba(239,230,210,.045);text-align:left;min-height:80px}
