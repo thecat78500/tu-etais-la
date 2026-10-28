@@ -517,6 +517,30 @@
   if(Array.isArray(support.instructions))for(const instruction of support.instructions){if(typeof instruction!=='string'||instruction.length>80)continue;const item=document.createElement('li');item.textContent=instruction;liste.append(item)}
   bloc.hidden=false;
  }
+ function rendreAideReponse(prog){
+  let aide=$('pl-aide-reponse');
+  if(!aide){
+   aide=document.createElement('section');aide.id='pl-aide-reponse';aide.setAttribute('aria-label','Partager les indices et répondre');
+   aide.innerHTML='<p id="pl-aide-consigne"></p><details><summary>Comment partager les indices et répondre ?</summary><ol id="pl-aide-etapes"></ol><p id="pl-aide-exemple"></p><p>Sally ne vous entend pas autour de la table : écrivez dans votre conversation privée avec le bot. Gardez votre camp et votre objectif secrets ; racontez vos indices sans faire circuler vos téléphones.</p></details>';
+   $('pl-enonce').after(aide);
+  }
+  const portes=prog?.portes,fin=portes?.phase==='fin';aide.hidden=fin||(!prog?.active&&!portes);if(aide.hidden)return;
+  const vote=portes&&['vote','vote_2'].includes(portes.phase);
+  const consigne=portes?(vote?'Chacun écrit son propre vote en privé dans Telegram.':'Comparez vos exclusions à voix haute, puis préparez votre vote.'):'Discutez à voix haute. Une seule personne écrit ensuite la réponse complète dans Telegram : « je propose… ».';
+  const etapes=portes?[
+   'Chacun raconte ce que ses indices permettent d’écarter. Confrontez les affirmations : les joueurs n’ont pas tous le même objectif.',
+   'Quand vous avez fini de discuter, chacun écrit « prêt à voter » à Sally. Attendez le message annonçant l’ouverture du vote.',
+   'Une fois le vote ouvert, chacun écrit son choix dans Telegram : « je vote la porte de… », suivi du nom de la porte. Ce choix reste privé.'
+  ]:[
+   'Après l’appel commun sur l’iPad, demandez votre indice dans Telegram avec « Recevoir mon indice » ou /indice. Écoutez les audios privés avec des écouteurs.',
+   'Faites un tour de table : chacun raconte ce qu’il a appris. Comparez ces informations aux documents communs sur l’iPad. Vous n’avez pas tous le même fragment ; demandez aux autres ce qui manque.',
+   'Quand vous avez une proposition, choisissez une personne pour l’écrire en entier à Sally dans Telegram, en commençant par « je propose ». N’envoyez pas chaque fragment séparément. Attendez sa réponse avant de proposer à nouveau.'
+  ];
+  // Les synchronisations ne referment pas l’aide pendant sa lecture.
+  $('pl-aide-consigne').textContent=consigne;
+  $('pl-aide-etapes').replaceChildren(...etapes.map(texte=>{const li=document.createElement('li');li.textContent=texte;return li}));
+  $('pl-aide-exemple').textContent=portes?'Au dernier sceau, « je propose » ne choisit pas la porte : il faut un vote de chaque joueur.':'Exemple fictif : une personne sait « A avant B », une autre « B avant C ». Vous en déduisez ensemble A → B → C. Une seule personne écrit alors « je propose A, B, C ». Utilisez les mots demandés par votre énigme.';
+ }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
   ov.hidden = !etat.ouvert; document.body.classList.toggle('plateau-ouvert', etat.ouvert);
@@ -542,11 +566,12 @@
   $('pl-proximite').innerHTML = [0, 1, 2, 3, 4].map(i => '<li class="' + (i < proche ? 'plein' : '') + '"></li>').join('');
   $('pl-proximite').setAttribute('aria-label', 'Proximité de l’entité : ' + proche + ' sur 5');
   const portes=prog?.portes;
+  rendreAideReponse(prog);
   ov.classList.toggle('pl-choix-portes',!!portes);
   ov.classList.toggle('pl-fin',portes?.phase==='fin');
   rendreFin(portes);
   $('pl-portes').hidden=!portes;
-  document.querySelector('.pl-conseil').hidden=!!portes;
+  document.querySelector('.pl-conseil').hidden=true; // Consigne concrète dans l’aide ci-dessus.
   if(portes){
    const fin=portes.phase==='fin', vote=['vote','vote_2'].includes(portes.phase);
    const labels={attente:'Le débat va s’ouvrir',debat:'Le débat est ouvert',vote:'Vote secret',debat_egalite:'Égalité : nouveau débat',vote_2:'Second vote secret',fin:'La porte est ouverte'};
@@ -557,7 +582,7 @@
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
    const signes={Lune:'☾',Cendre:'⋰',Ronce:'♧',Verre:'◇',Seuil:'⊓'};
    $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span class="pl-porte-visuel" aria-hidden="true"><span class="pl-porte-repli">${signes[s]||''}</span><img src="assets/portes/porte-${encodeURIComponent(s.toLowerCase())}.png" alt="" width="1024" height="1536" decoding="async"></span><strong>${echapper(s)}</strong></li>`).join('');
-   $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Votez en privé auprès de Sally : « Je vote la porte de la Ronce ».':'Comparez vos exclusions. Dites à Sally « prêt à voter » quand vous êtes prêts.';
+   $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Chacun écrit dans Telegram « je vote la porte de… », avec le nom de son choix.':'Comparez vos exclusions à voix haute. Chacun écrit ensuite « prêt à voter » dans Telegram.';
    $('pl-portes-fin').hidden=!fin;
    $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li data-victoire="${j.victoire===true?'oui':'non'}"><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
   }
@@ -710,7 +735,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 15 : préparation du retour sous protection au sceau IV ; quatre énigmes de l’affaire 1 raccordées, vote secret, scènes et appels conservés.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 16 : aide au partage des indices, à la réponse écrite dans Telegram et au vote individuel.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
