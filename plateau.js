@@ -522,7 +522,7 @@
   let aide=$('pl-aide-reponse');
   if(!aide){
    aide=document.createElement('section');aide.id='pl-aide-reponse';aide.setAttribute('aria-label','Partager les indices et répondre');
-   aide.innerHTML='<p id="pl-aide-consigne"></p><details><summary>Comment partager les indices et répondre ?</summary><ol id="pl-aide-etapes"></ol><p id="pl-aide-exemple"></p><p>Sally ne vous entend pas autour de la table : écrivez dans votre conversation privée avec le bot. Gardez votre camp et votre objectif secrets ; racontez vos indices sans faire circuler vos téléphones.</p></details>';
+   aide.innerHTML='<p id="pl-aide-consigne"></p><details><summary>Comment partager les indices et répondre ?</summary><ol id="pl-aide-etapes"></ol><p id="pl-aide-exemple"></p><p>Pour répondre à Sally, écrivez dans votre conversation privée avec elle sur Telegram. Gardez votre camp et votre objectif secrets ; racontez vos indices sans faire circuler vos téléphones.</p><p>Le signal qui vous relie à Sally est fragile. Vous reconnaissez sa voix… mais, parfois, quelque chose semble se glisser entre ses mots.</p></details>';
    $('pl-enonce').after(aide);
   }
   const portes=prog?.portes,fin=portes?.phase==='fin';aide.hidden=fin||(!prog?.active&&!portes);if(aide.hidden)return;
@@ -736,7 +736,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 18 : consigne de la chronologie de Sally rédigée par David ; aide au partage et au vote.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 19 : conversation avec Sally sur Telegram et signal troublé ; consigne de David conservée.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
