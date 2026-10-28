@@ -10,7 +10,8 @@ destination.mkdir(exist_ok=True)
 files = ['index.html', 'style.css', 'lobby.css', 'dread.css', 'tablet.css',
          'app.js', 'lobby.js', 'media-store.js', 'admin-gallery.js',
          'admin.html', 'admin.css', 'admin.js', 'transfert.html', 'transfert.css', 'transfert.js',
-         'ecran.html', 'ecran.css', 'ecran.js', 'catalogue-affaires.json']
+         'ecran.html', 'ecran.css', 'ecran.js', 'plateau.js', 'plateau.css', 'catalogue-affaires.json', 'invitation-qr.js',
+         'vendor/qrcode.js', 'vendor/qrcode-LICENSE.txt', 'vendor/qrcode-SOURCE.txt']
 assets = set()
 for name in files:
     text = (source / name).read_text(encoding='utf-8')
@@ -24,7 +25,7 @@ for name in files + sorted(assets):
 
 Démonstration d’un jeu d’enquête fantastique pour 4 à 10 joueurs, conçue pour iPad.
 
-L’accueil index.html reste une démonstration autonome avec des codes visibles. L’écran ecran.html permet de choisir l’effectif et le scénario, créer, lancer et arrêter les parties grâce au workflow organisateur n8n protégé par un credential Header Auth. Le code organisateur est saisi à l’utilisation ; aucun secret n’est inclus dans les fichiers publics. Le mode second écran en lecture seule via /ipad reste disponible. Les workflows doivent être installés et activés sur n8n avant utilisation. Dix affaires sont présentées avec leurs images et introductions ; leurs cinq familles d’énigmes sont générées et validées côté n8n. Les rôles, camps et indices privés restent sur Telegram.
+L’adresse principale ouvre directement le jeu ecran.html : choisir, accueillir par QR code, jouer, puis rejouer. Une fois les workflows configurés et activés, toutes les commandes de partie passent par le site. L’option explicite de mémorisation conserve l’accès sur l’appareil organisateur pour reprendre la table au retour ; la déconnexion l’efface. Aucun secret n’est inclus dans les fichiers publics. La configuration et le mode second écran sont regroupés dans les réglages. Dix affaires sont présentées avec leurs images et introductions ; leurs cinq familles d’énigmes sont générées et validées côté n8n. Les rôles, camps et indices privés restent sur Telegram.
 
 L’administration des images conserve ses imports dans le navigateur de cet appareil. Le Studio des voix, ses scripts privés, le service serveur et les documents de conception ne sont pas inclus dans cette publication.
 

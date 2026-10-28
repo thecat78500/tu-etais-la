@@ -386,6 +386,46 @@
  // Preuves publiques de la nouvelle chronologie : activation explicite par le serveur.
  // Ni le relevé du couloir, ni l'appel privé, ni la solution ne figurent ici.
  const PHOTO_RESERVE = 'assets/preuves/affaire-01/reserve-vide.png';
+ // Scènes fixes : seule l'étape publique ou l'issue révélée choisit l'image.
+ // Elles ne contiennent ni répartition privée ni indication de la bonne porte.
+ const SCENES_RESERVE = {
+  1:{src:PHOTO_RESERVE,alt:'La réserve vide, le panneau déplacé et le renfoncement maçonné.',texte:'La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.'},
+  2:{src:'assets/scenes/affaire-01/sceau-02-passage.png',alt:'Vue rapprochée du renfoncement et du panneau écarté, dans la même réserve.',texte:'Au fond de la réserve, les traces du panneau apparaissent plus nettement.'},
+  3:{src:'assets/scenes/affaire-01/sceau-03-envers.png',alt:'La réserve dans l’envers, baignée de lumière froide et de brume.',texte:'Les mêmes murs, les mêmes objets. De l’autre côté, la maison ne semble plus tout à fait la même.'},
+  4:{src:'assets/scenes/affaire-01/sceau-04-protection.png',alt:'Un passage fermé dans l’envers, entouré d’une lumière ambrée.',texte:'Une lueur tient encore autour du passage. La maison garde sa frontière.'},
+  5:{src:'assets/scenes/affaire-01/sceau-05-portes.png',alt:'Cinq portes fermées, aux signes de Lune, Cendre, Ronce, Verre et Seuil.',texte:'Cinq portes attendent. Aucune image ne vous dira laquelle choisir.'}
+ };
+ const SCENES_CONCLUSION = {
+  1:{src:'assets/scenes/affaire-01/fin-01-sally.png',alt:'Sally revient dans la réserve, émue et soulagée, dans une lumière chaude.'},
+  2:{src:'assets/scenes/affaire-01/fin-02-entite.png',alt:'Une présence noire a franchi le seuil et envahit la réserve.'},
+  3:{src:'assets/scenes/affaire-01/fin-03-scellee.png',alt:'Le seuil reste fermé et barré. Une lumière froide subsiste de l’autre côté.'},
+  4:{src:'assets/scenes/affaire-01/fin-04-enfermes.png',alt:'Depuis l’intérieur de la maison, la dernière porte se referme sur un mince filet de lumière.'},
+  5:{src:'assets/scenes/affaire-01/fin-05-silence.png',alt:'Le passage a disparu dans un mur plein. La réserve est vide et silencieuse.'}
+ };
+ function sceneReserve(data){
+  const prog=data?.progression;
+  if(Number(data?.partie?.scenario_id)!==1||(!prog?.initialise&&!prog?.active&&!prog?.portes))return null;
+  if(prog.portes?.phase==='fin'){
+   const issue=Number(prog.portes.resultat?.issue),scene=SCENES_CONCLUSION[issue];
+   return scene?{...scene,id:'fin-'+issue,texte:FINS_VISUELLES[issue].texte}:null;
+  }
+  const etape=prog.portes?5:Number(prog.active?.etape||(Number(prog.resolues)>=5?5:0));
+  return SCENES_RESERVE[etape]?{...SCENES_RESERVE[etape],id:'sceau-'+etape}:null;
+ }
+ function rendreScene(data,affaire){
+  const scene=sceneReserve(data),image=$('pl-image'),vue=$('pl-vue');
+  $('plateau').classList.toggle('pl-scenes',!!scene);
+  if(scene){
+   $('plateau').dataset.scene=scene.id;
+   if(image.getAttribute('src')!==scene.src)image.src=scene.src;
+   image.alt=scene.alt;vue.hidden=false;$('pl-trace').textContent=scene.texte;
+  }else{
+   delete $('plateau').dataset.scene;
+   vue.hidden=!affaire?.image;
+   if(affaire?.image&&image.getAttribute('src')!==affaire.image)image.src=affaire.image;
+   image.alt='Illustration d’ambiance de l’affaire';$('pl-trace').textContent=affaire?.intro||'';
+  }
+ }
  const EVENEMENTS_RESERVE = ['Appel', 'Panneau déplacé', 'Porte refermée', 'Entrée', 'Message'];
  function supportReserve(data){
   const actif=data?.progression?.active, support=actif?.support_public;
@@ -431,13 +471,12 @@
   const data = etat.data, partie = data?.partie, prog = data?.progression;
   const affaire = etat.affaires?.find(a => a.id === partie?.scenario_id);
   $('pl-titre-affaire').textContent = affaire?.title || (supportReserve(data)?'La porte qu’on n’a pas ouverte':'La maison');
-  const image = $('pl-image'), vue = $('pl-vue');
-  if(affaire?.image && !supportReserve(data)){ if(image.getAttribute('src') !== affaire.image) image.setAttribute('src', affaire.image); vue.hidden = false; $('pl-trace').textContent = affaire.intro || ''; } else vue.hidden = true;
   const actif = prog?.active, resolues = prog?.resolues || 0;
   $('pl-sceau-num').textContent = actif ? `SCEAU ${ROMAINS[actif.etape - 1]} SUR V` : 'LES CINQ SCEAUX SONT OUVERTS';
   $('pl-titre').textContent = actif ? actif.titre : 'Le rituel est prêt.';
   $('pl-enonce').textContent = actif ? enonceCourt(actif.enonce) : 'Il ne reste qu’à choisir la porte.';
   rendrePreuvesReserve(data);
+  rendreScene(data,affaire);
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
   const er = etat.erreurs, vers = Math.min(3, er?.vers_seuil || 0), proche = Math.min(5, er?.proximite || 0);
@@ -612,7 +651,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 11 : preuves publiques de la réserve, mur de souvenirs anonyme, appels de conclusion de Sally et de l’entité, cinq ambiances de fin, portes illustrées, vote secret, sons, pouvoirs et approche de l’entité.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 12 : scènes évolutives de l’affaire 1, une image par sceau et cinq conclusions illustrées ; preuves privées sur Telegram, vote secret et appels conservés.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

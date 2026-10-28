@@ -291,6 +291,32 @@ body.plateau-ouvert{overflow:hidden}
 .pl-fin #pl-portes-liste .choisie{border-color:var(--fin-accent);box-shadow:0 0 20px rgba(var(--fin-rgb),.2)}
 .pl-fin #pl-portes-revelation li[data-victoire="oui"]{border-left:2px solid var(--fin-accent);padding-left:12px;background:linear-gradient(90deg,rgba(var(--fin-rgb),.07),transparent)}
 .pl-fin #pl-portes-revelation li[data-victoire="non"] b{color:var(--papier-doux)}
+/* L'affaire 1 garde sa scène visible au vote et à la conclusion. Le cadrage
+   contient l'image entière pour ne couper ni repères ni porte aux extrémités. */
+#plateau.pl-scenes .pl-vue{display:flex}
+#plateau.pl-scenes>.pl-haut,#plateau.pl-scenes>.pl-centre,#plateau.pl-scenes>.pl-dock{min-width:0}
+#plateau.pl-scenes .pl-vue img{object-fit:contain;filter:none;animation:none}
+#plateau.pl-scenes.pl-choix-portes .pl-centre{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+#plateau.pl-scenes.pl-fin .pl-fin-seuil{display:none}
+#plateau.pl-scenes.pl-fin .pl-fin-scene{grid-template-columns:1fr;padding:12px 0 16px;gap:0}
+@media(max-aspect-ratio:1/1),(max-width:600px){
+ #plateau.pl-scenes .pl-centre{display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
+ #plateau.pl-scenes .pl-vue{flex:none;overflow:hidden}
+ #plateau.pl-scenes .pl-vue img{display:block;height:auto;max-height:34dvh;flex:none}
+ #plateau.pl-scenes .pl-sceau{flex:none;overflow:visible}
+}
+@media(max-width:600px){
+ #plateau.pl-scenes .pl-haut-droite{min-width:0;gap:8px}
+ #plateau.pl-scenes .pl-voix-etat{font-size:10px;max-width:80px;letter-spacing:0}
+ #plateau.pl-scenes .pl-marque small{font-size:9px;letter-spacing:.1em}
+ #plateau.pl-scenes #pl-regie{padding:0 10px;font-size:12px}
+ #plateau.pl-scenes .pl-dock{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 12px}
+ #plateau.pl-scenes .pl-dock button{min-height:58px;padding:6px 8px}
+ #plateau.pl-scenes .pl-bouton-texte{font-size:16px}
+ #plateau.pl-scenes .pl-dock small{font-size:9px;letter-spacing:0}
+ #plateau.pl-scenes .pl-dock>.pl-volume{grid-column:1/-1;padding:4px 10px}
+ #plateau.pl-scenes .pl-curseur input{height:28px}
+}
 @media(max-width:600px){.pl-fin-scene{grid-template-columns:76px minmax(0,1fr);padding:10px 0 16px;gap:16px}.pl-fin-seuil{width:70px;height:105px}#pl-fin-victoire{font-size:27px}#pl-fin-presage{font-size:15px}#pl-fin-recit{font-size:16px}.pl-fin #pl-portes-liste li>.pl-porte-visuel{height:75px}}
 
 /* Une voix de conclusion prend la ligne, avec son identité propre. */
