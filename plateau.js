@@ -469,6 +469,7 @@
   const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===2&&data.progression.active.support_public?.type==='affaire-01-passage-v1'&&!data.progression.portes;
   let bloc=$('pl-preuves-passage');
   if(!actif){if(bloc)bloc.hidden=true;if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();return}
+  $('pl-enonce').textContent='Vous avez reconstitué les derniers gestes de Sally. Avant son appel, elle a déplacé un panneau au fond de la réserve. Qu’a-t-elle découvert derrière ?\n\nComparez le plan affiché sur l’iPad avec vos documents privés pour identifier ce passage et comprendre où il mène.\n\nUne personne écrit ensuite à Sally dans Telegram « je propose », suivi du passage identifié, de sa destination et de la raison pour laquelle ouvrir la porte ordinaire ne suffit pas à la ramener.';
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-passage';bloc.setAttribute('aria-label','Le plan commun de la réserve');
    bloc.innerHTML='<button id="pl-plan-ouvrir" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Aperçu du relevé actuel" width="960" height="1280"><span>Consulter le plan actuel<small>Document commun — comparer aux archives reçues dans Telegram</small></span></button>';
@@ -736,7 +737,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 19 : conversation avec Sally sur Telegram et signal troublé ; consigne de David conservée.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 20 : transition entre les derniers gestes de Sally et le passage découvert derrière le panneau.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
