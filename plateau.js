@@ -445,10 +445,10 @@
    $('pl-image').alt='Illustration d’ambiance de l’affaire';
    return;
   }
-  $('pl-enonce').textContent='Reconstituez ce qui est arrivé à Sally dans la réserve. Classez les cinq événements ci-dessous, du premier au dernier. Pour trouver leur ordre, croisez les deux preuves privées : le relevé de caméra et le message vocal reçus dans Telegram.';
+  $('pl-enonce').textContent="Reconstituez précisément ce qui est arrivé à Sally et dans l'ordre précis. Chaque joueur possède un indice. Racontez ce que chaque preuve vous apprend. Une fois l’ordre trouvé, une personne écrit dans Telegram « je propose » suivi des cinq événements dans l'ordre, séparés par des virgules.";
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-reserve';bloc.setAttribute('aria-label','Les traces communes');
-   bloc.innerHTML='<article class="pl-message-sally" aria-label="Message de Sally"><header><strong>Sally</strong><time></time></header><p></p></article><button id="pl-photo-ouvrir" type="button" aria-haspopup="dialog">Examiner la photo de la réserve</button><h3>À classer du premier au dernier</h3><ul class="pl-evenements-reserve">'+EVENEMENTS_RESERVE.map(e=>'<li>'+e+'</li>').join('')+'</ul><p class="pl-reponse-reserve"><strong>Message</strong> désigne le texte de Sally affiché ici. <strong>Appel</strong> désigne le vocal privé reçu dans Telegram, pas l’appel d’introduction sur l’iPad.</p><p class="pl-reponse-reserve">Certains d’entre vous ont reçu le relevé de caméra, d’autres le vocal. Chacun raconte ce que sa preuve permet de placer <strong>avant ou après</strong> un autre événement. Assemblez ces informations jusqu’à obtenir une seule suite contenant les cinq événements.</p><p class="pl-reponse-reserve"><strong>Réponse attendue :</strong> une personne écrit « je propose », puis les cinq noms dans l’ordre choisi, séparés par des virgules. Utilisez chaque événement une seule fois. La photo montre les lieux après la disparition ; l’ordre se déduit des preuves privées.</p>';
+   bloc.innerHTML='<article class="pl-message-sally" aria-label="Message de Sally"><header><strong>Sally</strong><time></time></header><p></p></article><button id="pl-photo-ouvrir" type="button" aria-haspopup="dialog">Examiner la photo de la réserve</button><h3>À classer du premier au dernier</h3><ul class="pl-evenements-reserve">'+EVENEMENTS_RESERVE.map(e=>'<li>'+e+'</li>').join('')+'</ul><p class="pl-reponse-reserve"><strong>Message</strong> désigne le texte de Sally affiché ici. <strong>Appel</strong> désigne le vocal privé reçu dans Telegram, pas l’appel d’introduction sur l’iPad.</p>';
    $('pl-enonce').after(bloc);
    const dialogue=document.createElement('dialog');dialogue.id='pl-photo-dialog';dialogue.setAttribute('aria-labelledby','pl-photo-titre');
    dialogue.innerHTML='<header><h2 id="pl-photo-titre">La réserve après sa disparition</h2><button type="button">Fermer la photo</button></header><img src="'+PHOTO_RESERVE+'" alt="La réserve est vide. Un panneau écarté révèle un renfoncement maçonné au fond de la pièce."><p>Photographie prise après l’ouverture de la porte par le groupe.</p>';
@@ -736,7 +736,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 17 : mission, preuves et réponse attendue explicites pour la chronologie de Sally ; aide au partage et au vote.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 18 : consigne de la chronologie de Sally rédigée par David ; aide au partage et au vote.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
