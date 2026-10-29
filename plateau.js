@@ -548,13 +548,16 @@
   bloc.querySelector('img').src=notice;$('pl-retour-dialog').querySelector('img').src=notice;
   const dispositif=support.dispositif;
   if(dispositif?.schema==='boitier-retour-v1'){
-   bloc.querySelector('img').src='assets/preuves/affaire-01/boitier-retour.svg';$('pl-retour-dialog').querySelector('img').src='assets/preuves/affaire-01/boitier-retour.svg';
+   bloc.querySelector('img').src='assets/preuves/affaire-01/boitier-retour-photo-v1.jpg';$('pl-retour-dialog').querySelector('img').src='assets/preuves/affaire-01/boitier-retour-photo-v1.jpg';
+   for(const img of [bloc.querySelector('img'),$('pl-retour-dialog').querySelector('img')])img.onerror=()=>{img.onerror=null;img.src='assets/preuves/affaire-01/boitier-retour.svg';};
+   const dialogue=$('pl-retour-dialog');dialogue.classList.add('pl-boitier-photo');
+   let schema=$('pl-boitier-schema');if(!schema){schema=document.createElement('details');schema.id='pl-boitier-schema';schema.innerHTML='<summary>Identifier les cinq pièces du boîtier</summary><img src="assets/preuves/affaire-01/boitier-retour.svg" alt="Schéma légendé : loquet en haut à gauche, cadran au centre, plaque en haut à droite, borne en bas à gauche, capot en bas à droite." width="1100" height="720" loading="lazy">';dialogue.querySelector('img').after(schema);}schema.hidden=false;
    for(const img of [bloc.querySelector('img'),$('pl-retour-dialog').querySelector('img')])img.alt='Boîtier de retour : loquet du rempart, borne Galerie, plaque de contrôle, cadran du seuil et capot d’ouverture.';
    $('pl-retour-ouvrir').querySelector('span').firstChild.textContent='Examiner le boîtier de retour';
    let reperes=$('pl-retour-reperes');if(!reperes){reperes=document.createElement('div');reperes.id='pl-retour-reperes';reperes.className='pl-reperes-retour';bloc.prepend(reperes);}
    reperes.hidden=false;reperes.replaceChildren();for(const [titre,valeur] of [['Cadran · découverte du sceau II',dispositif.seuil],['Plaque · dernier contrôle du sceau III',dispositif.relais]]){const carte=document.createElement('article'),t=document.createElement('small'),v=document.createElement('strong');t.textContent=titre;v.textContent=valeur;carte.append(t,v);reperes.append(carte);}
    let legendes=$('pl-boitier-legendes');if(!legendes){legendes=document.createElement('dl');legendes.id='pl-boitier-legendes';$('pl-retour-dialog').append(legendes);}legendes.replaceChildren();for(const [geste,texte] of Object.entries(dispositif.gestes||{})){const terme=document.createElement('dt'),explication=document.createElement('dd');terme.textContent=geste;explication.textContent=texte;legendes.append(terme,explication);}
-  }else{if($('pl-retour-reperes'))$('pl-retour-reperes').hidden=true;if($('pl-boitier-legendes'))$('pl-boitier-legendes').replaceChildren();}
+  }else{$('pl-retour-dialog').classList.remove('pl-boitier-photo');if($('pl-boitier-schema'))$('pl-boitier-schema').hidden=true;for(const img of [bloc.querySelector('img'),$('pl-retour-dialog').querySelector('img')])img.onerror=null;if($('pl-retour-reperes'))$('pl-retour-reperes').hidden=true;if($('pl-boitier-legendes'))$('pl-boitier-legendes').replaceChildren();}
   if(Array.isArray(support.instructions))for(const instruction of support.instructions){if(typeof instruction!=='string'||instruction.length>80)continue;const item=document.createElement('li');item.textContent=instruction;liste.append(item)}
   bloc.hidden=false;
  }
@@ -790,7 +793,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 24 : volume des voix synchronisé et ambiance atténuée pendant les archives.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 25 : boîtier photographique, schéma des pièces et écoute équilibrée.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

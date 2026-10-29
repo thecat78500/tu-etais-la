@@ -384,3 +384,9 @@ body.plateau-ouvert{overflow:hidden}
 #pl-boitier-legendes{display:grid;grid-template-columns:max-content 1fr;gap:.6rem 1rem;padding:1rem;color:#e5dac4}
 #pl-boitier-legendes dt{color:#d0ad70}#pl-boitier-legendes dd{margin:0}
 @media(max-width:600px){.pl-reperes-retour{grid-template-columns:1fr}#pl-boitier-legendes{grid-template-columns:1fr}}
+#pl-retour-dialog.pl-boitier-photo>img{max-height:58dvh;object-fit:contain;width:100%;height:auto;background:#0a0c0d}
+#pl-boitier-schema{margin:14px 0;border-top:1px solid var(--trait,rgba(239,230,210,.2));border-bottom:1px solid var(--trait,rgba(239,230,210,.2))}
+#pl-boitier-schema[hidden]{display:none}
+#pl-boitier-schema summary{padding:14px 0;min-height:44px;cursor:pointer;color:#d0ad70}
+#pl-boitier-schema summary:focus-visible{outline:2px solid #e0a45a;outline-offset:3px}
+#pl-boitier-schema img{margin-bottom:12px}
