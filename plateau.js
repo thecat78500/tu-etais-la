@@ -445,7 +445,8 @@
    $('pl-image').alt='Illustration d’ambiance de l’affaire';
    return;
   }
-  $('pl-enonce').textContent="Reconstituez précisément ce qui est arrivé à Sally et dans l'ordre précis. Chaque joueur possède un indice. Racontez ce que chaque preuve vous apprend. Une fois l’ordre trouvé, une personne écrit dans Telegram « je propose » suivi des cinq événements dans l'ordre, séparés par des virgules.";
+  const horloge=['L’heure véritable','Le temps derrière la porte'].includes(data.progression.active.titre);
+  $('pl-enonce').textContent=horloge?data.progression.active.enonce:"Reconstituez précisément ce qui est arrivé à Sally et dans l'ordre précis. Chaque joueur possède un indice. Racontez ce que chaque preuve vous apprend. Une fois l’ordre trouvé, une personne écrit dans Telegram « je propose » suivi des cinq événements dans l'ordre, séparés par des virgules.";
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-reserve';bloc.setAttribute('aria-label','Les traces communes');
    bloc.innerHTML='<article class="pl-message-sally" aria-label="Message de Sally"><header><strong>Sally</strong><time></time></header><p></p></article><button id="pl-photo-ouvrir" type="button" aria-haspopup="dialog">Examiner la photo de la réserve</button><h3>À classer du premier au dernier</h3><ul class="pl-evenements-reserve">'+EVENEMENTS_RESERVE.map(e=>'<li>'+e+'</li>').join('')+'</ul><p class="pl-reponse-reserve"><strong>Message</strong> désigne le texte de Sally affiché ici. <strong>Entrée</strong> désigne son entrée dans la réserve. <strong>Appel</strong> désigne le vocal privé reçu dans Telegram, pas l’appel d’introduction sur l’iPad.</p><p class="pl-reponse-reserve">Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.</p>';
@@ -457,6 +458,10 @@
    $('pl-photo-ouvrir').addEventListener('click',()=>{if(supportReserve(etat.data)&&!dialogue.open)dialogue.showModal()});
   }
   bloc.hidden=false;
+  bloc.querySelector('h3').hidden=horloge;
+  bloc.querySelector('.pl-evenements-reserve').hidden=horloge;
+  bloc.querySelector('.pl-reponse-reserve').hidden=horloge;
+  bloc.querySelectorAll('.pl-reponse-reserve')[1].textContent=horloge?'Comparez les références : les morceaux d’un même document ou message se complètent. Les heures du relevé caméra doivent être corrigées grâce aux autres fragments.':'Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.';
   bloc.querySelector('time').textContent=support.message.heure;
   bloc.querySelector('time').dateTime=support.message.heure;
   bloc.querySelector('.pl-message-sally p').textContent=support.message.lignes.join('\n');
@@ -469,7 +474,7 @@
   const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===2&&data.progression.active.support_public?.type==='affaire-01-passage-v1'&&!data.progression.portes;
   let bloc=$('pl-preuves-passage');
   if(!actif){if(bloc)bloc.hidden=true;if($('pl-plan-dialog')?.open)$('pl-plan-dialog').close();return}
-  $('pl-enonce').textContent='Vous avez reconstitué les derniers gestes de Sally. Avant son appel, elle a déplacé un panneau au fond de la réserve. Qu’a-t-elle découvert derrière ?\n\nComparez le plan affiché sur l’iPad avec vos documents privés pour identifier ce passage et comprendre où il mène.\n\nUne personne écrit ensuite à Sally dans Telegram « je propose », suivi du passage identifié, de sa destination et de la raison pour laquelle ouvrir la porte ordinaire ne suffit pas à la ramener.';
+  $('pl-enonce').textContent=data.progression.active.enonce;
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-passage';bloc.setAttribute('aria-label','Le plan commun de la réserve');
    bloc.innerHTML='<button id="pl-plan-ouvrir" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/passage-v1/plan-actuel.png" alt="Aperçu du relevé actuel" width="960" height="1280"><span>Consulter le plan actuel<small>Document commun — comparer aux archives reçues dans Telegram</small></span></button>';
@@ -481,12 +486,21 @@
   }
   bloc.hidden=false;
  }
+ function imagePlanChemin(support){
+  const lieux=support?.lieux,liaisons=support?.liaisons,permis=['Réserve','Office','Cave','Palier','Vestibule','Galerie'];
+  if(!Array.isArray(lieux)||lieux.length!==6||new Set(lieux).size!==6||!lieux.every(x=>permis.includes(x))||!Array.isArray(liaisons)||liaisons.length!==11||!liaisons.every(l=>Array.isArray(l)&&l.length===2&&l.every(x=>lieux.includes(x))))return 'assets/preuves/affaire-01/chemin-v1/plan-envers.png';
+  const points=[[110,390],[370,190],[370,600],[710,190],[710,600],[970,390]],index=Object.fromEntries(lieux.map((l,i)=>[l,i]));
+  const traits=liaisons.map(([a,b])=>{const i=index[a],j=index[b],[x,y]=points[i],[xx,yy]=points[j],dx=xx-x,dy=yy-y,d=Math.hypot(dx,dy),sx=x+dx/d*87,sy=y+dy/d*48,ex=xx-dx/d*95,ey=yy-dy/d*56;return '<path d="M '+sx+' '+sy+' L '+ex+' '+ey+'"/>'}).join('');
+  const salles=lieux.map((l,i)=>{const [x,y]=points[i];return '<g><rect x="'+(x-90)+'" y="'+(y-35)+'" width="180" height="70" rx="3"/><text x="'+x+'" y="'+(y+8)+'">'+l+'</text></g>'}).join('');
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="780" viewBox="0 0 1080 780"><defs><marker id="fleche" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6" fill="none" stroke="#524632" stroke-width="1.4"/></marker></defs><rect width="1080" height="780" fill="#e4d8ba"/><rect x="16" y="16" width="1048" height="748" fill="none" stroke="#8c7957"/><text x="540" y="70" text-anchor="middle" font-family="Georgia" font-size="30" fill="#352e23">Les accès dans l’envers — cette nuit</text><text x="540" y="110" text-anchor="middle" font-family="Georgia" font-size="19" fill="#524632">Suivez les flèches. Les restrictions restent dans vos preuves privées.</text><g fill="none" stroke="#524632" stroke-width="2.5" marker-end="url(#fleche)">'+traits+'</g><g fill="#eee3c8" stroke="#65583f">'+salles+'</g><style>g text{fill:#352e23;stroke:none;text-anchor:middle;font:24px Georgia}</style><text x="540" y="720" text-anchor="middle" font-family="Georgia" font-size="19" fill="#524632">Départ : Réserve · Arrivée : Galerie · Un seul passage par lieu</text></svg>';
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+ }
  function rendrePreuvesChemin(data){
   const support=data?.progression?.active?.support_public;
   const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===3&&support?.type==='affaire-01-chemin-v1'&&!data.progression.portes;
   let bloc=$('pl-preuves-chemin');
   if(!actif){if(bloc)bloc.hidden=true;if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();return}
-  $('pl-enonce').textContent='Guidez Sally de la Réserve à la Galerie. Suivez les flèches sans repasser par un lieu. Vos relevés privés indiquent les passages interdits et les contrôles obligatoires.\nRecoupez vos indices, puis envoyez le trajet dans Telegram : « je propose… ».';
+  $('pl-enonce').textContent=data.progression.active.enonce;
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-chemin';bloc.setAttribute('aria-label','Le plan commun des accès dans l’envers');
    bloc.innerHTML='<button id="pl-chemin-ouvrir" class="pl-plan-commun" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/chemin-v1/plan-envers.png" alt="Aperçu du plan des accès" width="1280" height="1280"><span>Consulter le plan de l’envers<small>De la Réserve à la Galerie — recoupez vos relevés privés dans Telegram</small></span></button>';
@@ -497,6 +511,8 @@
    $('pl-chemin-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
   }
   const liste=$('pl-chemin-acces');liste.replaceChildren();
+  const image=imagePlanChemin(support);
+  bloc.querySelector('img').src=image;$('pl-chemin-dialog').querySelector('img').src=image;
   if(Array.isArray(support.liaisons))for(const liaison of support.liaisons){if(!Array.isArray(liaison)||liaison.length!==2||!liaison.every(x=>typeof x==='string'))continue;const item=document.createElement('li');item.textContent=liaison.join(' → ');liste.append(item)}
   bloc.hidden=false;
  }
@@ -505,7 +521,7 @@
   const actif=Number(data?.partie?.scenario_id)===1&&Number(data?.progression?.active?.etape)===4&&support?.type==='affaire-01-retour-v1'&&!data.progression.portes;
   let bloc=$('pl-preuves-retour');
   if(!actif){if(bloc)bloc.hidden=true;if($('pl-retour-dialog')?.open)$('pl-retour-dialog').close();return}
-  $('pl-enonce').textContent='Sally a atteint la galerie. Reconstituez les cinq gestes de préparation grâce à vos feuillets privés, puis envoyez leur ordre dans Telegram : « je propose… ».\nCette préparation préserve le rempart. Aucune porte ne s’ouvre avant le choix final.';
+  $('pl-enonce').textContent=data.progression.active.enonce;
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-retour';bloc.setAttribute('aria-label','Les instructions de préparation du retour');
    bloc.innerHTML='<ul id="pl-retour-instructions" class="pl-instructions-retour" aria-label="Instructions mélangées"></ul><button id="pl-retour-ouvrir" class="pl-plan-commun" type="button" aria-haspopup="dialog"><img src="assets/preuves/affaire-01/retour-v1/gestes-preparation.png" alt="Aperçu des gestes de préparation" width="960" height="1280"><span>Consulter les gestes de préparation<small>Notice commune — confrontez les raccords reçus dans Telegram</small></span></button>';
@@ -516,6 +532,8 @@
    $('pl-retour-ouvrir').addEventListener('click',()=>{if(!bloc.hidden&&!dialogue.open)dialogue.showModal()});
   }
   const liste=$('pl-retour-instructions');liste.replaceChildren();
+  const notice=data.progression.active.enonce.includes('procédure de cette nuit')?'assets/preuves/affaire-01/rejouabilite-v1/gestes-protection.png':'assets/preuves/affaire-01/retour-v1/gestes-preparation.png';
+  bloc.querySelector('img').src=notice;$('pl-retour-dialog').querySelector('img').src=notice;
   if(Array.isArray(support.instructions))for(const instruction of support.instructions){if(typeof instruction!=='string'||instruction.length>80)continue;const item=document.createElement('li');item.textContent=instruction;liste.append(item)}
   bloc.hidden=false;
  }
@@ -542,6 +560,8 @@
   $('pl-aide-consigne').textContent=consigne;
   $('pl-aide-etapes').replaceChildren(...etapes.map(texte=>{const li=document.createElement('li');li.textContent=texte;return li}));
   $('pl-aide-exemple').textContent=portes?'Au dernier sceau, « je propose » ne choisit pas la porte : il faut un vote de chaque joueur.':'Exemple fictif : une personne sait « A avant B », une autre « B avant C ». Vous en déduisez ensemble A → B → C. Une seule personne écrit alors « je propose A, B, C ». Utilisez les mots demandés par votre énigme.';
+  if(!portes&&prog?.active?.titre==='L’heure véritable')$('pl-aide-exemple').textContent='Format de réponse : « je propose HH:MM:SS, HH:MM:SS ». Donnez d’abord l’entrée, puis la fermeture ; utilisez les heures corrigées grâce à vos fragments.';
+  if(!portes&&prog?.active?.titre==='Le temps derrière la porte')$('pl-aide-exemple').textContent='Format de réponse : « je propose [minutes] min [secondes] s ». Calculez la durée entre l’entrée et la réouverture, en utilisant l’heure réelle de chaque événement.';
  }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
@@ -737,7 +757,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 21 : fragments de preuves complémentaires pour 4 à 10 joueurs ; consigne de David et transition vers le passage conservées.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 22 : variantes de l’affaire 1, preuves complémentaires de 4 à 10 joueurs et plan de cette partie.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
