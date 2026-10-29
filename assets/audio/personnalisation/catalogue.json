@@ -1,4 +1,93 @@
 {
   "version": 1,
-  "audios": {}
+  "audios": {
+    "ENTITE_ariana-83c00719.mp3": {
+      "octets": 140484,
+      "sha256": "a2cce5327e03e445d5f57f1fba36c0726294dfb78362a1e413af02d5a1488b46"
+    },
+    "ENTITE_david-b645a05d.mp3": {
+      "octets": 132961,
+      "sha256": "d98231d8f92df91e60110b626ae68940a4478d7df00ebe5f86cd257cbf5f7e59"
+    },
+    "ENTITE_flavio-db10d1d8.mp3": {
+      "octets": 138603,
+      "sha256": "8644f9d25bc7e54a4b63183c1e7f75e1dbea9526e1a019bcf7c45410d7fded80"
+    },
+    "ENTITE_ines-12725ba3.mp3": {
+      "octets": 137349,
+      "sha256": "e2d6e2d0973579ed029c09e020af8bd8c87c6814162f81dc62f12f482cbdb8db"
+    },
+    "ENTITE_jennifer-9e2811d0.mp3": {
+      "octets": 138603,
+      "sha256": "8652039cd993bd96ac32e7753137d5787d363003c20b9f7ecfb4efcfc6728ad4"
+    },
+    "ENTITE_kevan-889d886e.mp3": {
+      "octets": 132961,
+      "sha256": "fdeec4ed438dac58202b35677a7babfe4c4cec857f8462c318f9ec83477a4ab1"
+    },
+    "ENTITE_lana-6aea31e3.mp3": {
+      "octets": 138603,
+      "sha256": "28e8fda57cf01bffbf39abf544b72acb06e6e30c2e908192770fa41dc34a0195"
+    },
+    "ENTITE_mila-8e8e8414.mp3": {
+      "octets": 138603,
+      "sha256": "eb18558fba9145c370ffbc942dfe36ccbca5efcb3347095216ed66ed6d81a3f7"
+    },
+    "ENTITE_nicolas-9240697e.mp3": {
+      "octets": 140484,
+      "sha256": "b3770fd95837036e9a256ff418bfd262c1107256de09112a697534537e0bbb51"
+    },
+    "ENTITE_remi-80b284f6.mp3": {
+      "octets": 142992,
+      "sha256": "f2e47ba8980910157020075a3e99a3cc61837883e7d9a076148cd99d837656c7"
+    },
+    "ENTITE_tara-1a44f2a7.mp3": {
+      "octets": 134841,
+      "sha256": "0606acd8bebbc2f59f3ab4f8a899cf1d905a7557f18aa0bea774e4946dc0a5f2"
+    },
+    "SALLY_ariana-83c00719.mp3": {
+      "octets": 149032,
+      "sha256": "e39137d7c816a78be277beb1a73be517d9e0b1c9a3ef004ea6f6428ac66c86cf"
+    },
+    "SALLY_david-b645a05d.mp3": {
+      "octets": 143398,
+      "sha256": "6bc12b91aa279bd09866f561a2941d373f332b4792e0c62641f3702dce1259a1"
+    },
+    "SALLY_flavio-db10d1d8.mp3": {
+      "octets": 138390,
+      "sha256": "d2d533c090b1ef7a51b078d1088eb59d43174ff0b43980e7540cd7809dd3631c"
+    },
+    "SALLY_ines-12725ba3.mp3": {
+      "octets": 145276,
+      "sha256": "5f6b0498dad50d31966a095defb941ff5fd719c561d91defa289b922e90d6d94"
+    },
+    "SALLY_jennifer-9e2811d0.mp3": {
+      "octets": 142772,
+      "sha256": "72b1a0853e659c026413d574d330915449ac890ba165db2930d6829bfa32f8ea"
+    },
+    "SALLY_kevan-889d886e.mp3": {
+      "octets": 134008,
+      "sha256": "2e0771495a263e93f64ec902f33e08f9fb489dc7206b79b540c622b06c540f38"
+    },
+    "SALLY_lana-6aea31e3.mp3": {
+      "octets": 137138,
+      "sha256": "86ea71dc75c07d9cea61ae5d7c875d45ecb202afb8efe5fa78c889544065c3bd"
+    },
+    "SALLY_mila-8e8e8414.mp3": {
+      "octets": 142772,
+      "sha256": "fe4f835dc59fad72adea91615e35c12cbae80c649163d80423f94b08b4bf9406"
+    },
+    "SALLY_nicolas-9240697e.mp3": {
+      "octets": 137764,
+      "sha256": "fcf5d7c2d006ce964ad7c80065e57ca9b1223f7901d3dca9de280597882c55de"
+    },
+    "SALLY_remi-80b284f6.mp3": {
+      "octets": 139642,
+      "sha256": "210dfdca422d556c22e8830ee248e1fd3c74d031f3d0080cd36dd42f47543bdb"
+    },
+    "SALLY_tara-1a44f2a7.mp3": {
+      "octets": 132130,
+      "sha256": "aa72f06411830f5c791fcd82f52987db2cf2723a77e2a90f681288faf210aca9"
+    }
+  }
 }
