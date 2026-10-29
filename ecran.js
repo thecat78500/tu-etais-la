@@ -4,7 +4,7 @@
  const ADMIN_ENDPOINT='https://serteksa.ddns.net/webhook/tu-etais-la/organisateur';
  // Messages spontanés : état, pause et reprise (même clé fixe que l'organisateur).
  const CONTROLE_ENDPOINT='https://serteksa.ddns.net/webhook/tu-etais-la/controle';
- let pauseMessages=null;
+ let pauseMessages=null,personnalisationTelegram=null,controleBusy=false;
  const $=id=>document.getElementById(id),storageKey='tu-etais-la-ecran-v1';
  const adminStorageKey='tu-etais-la-organisateur-v1';
  let association=null,affaires=[],timer=null,controller=null,generation=0,loading=false;
@@ -62,12 +62,13 @@
  }
  function connecter(partie,cle){if(!/^M[A-Z0-9]{7}$/.test(partie)||!/^[a-f0-9]{64}$/.test(cle)){$('pair-feedback').textContent='Vérifie le code de partie et la clé d’association.';return}if(adminKey)quitterAdmin();arreter();if(association?.partie!==partie)$('table').hidden=true;association={partie,cle};memoriser();$('partie').value=partie;$('cle').value=cle;etat('Connexion à la partie…');actualiser()}
  function boutonsAdmin(){
+  window.PersonnalisationTelegramUI?.mettreAJour({autorise:!!adminKey&&adminCertain,partie:adminData?.partie,disponible:adminData?.partie?.statut==='en_cours'&&personnalisationTelegram!==null,active:personnalisationTelegram,joueurs:adminData?.joueurs||[],busy:adminBusy||controleBusy,changer:()=>controler(personnalisationTelegram?'depersonnaliser':'personnaliser')});
   const partie=adminData?.partie,pret=!!adminKey&&adminCertain&&!adminBusy;
   const enCours=partie?.statut==='en_cours'&&adminData?.progression?.resolues!==5;
   $('admin-pause').hidden=!enCours;$('admin-pause-hint').hidden=!enCours;
   $('ouvrir-plateau').hidden=partie?.statut!=='en_cours';
   $('ouvrir-plateau').textContent=adminData?.progression?.resolues===5?'Voir les portes et le résultat ▶':'Ouvrir le plateau de jeu ▶';
-  $('admin-pause').disabled=!pret||pauseMessages===null;
+  $('admin-pause').disabled=!pret||pauseMessages===null||controleBusy;
   $('admin-pause').textContent=pauseMessages?'Reprendre les messages ▶':'Mettre en pause les messages ❚❚';
   $('admin-pause-hint').textContent=pauseMessages===null?'Messages spontanés de Sally et de la Présence : état inconnu. Touche Actualiser.':pauseMessages?'Messages spontanés en pause : Sally et la Présence se taisent jusqu’à la reprise.':'Messages spontanés actifs : un message tous les 5 minutes environ.';
   const finie=partie?.statut==='en_cours'&&adminData?.progression?.resolues===5;
@@ -95,24 +96,26 @@
  }
  function quitterAdmin(message='Accès organisateur fermé'){
   window.Plateau?.fermer();window.Plateau?.mettreAJour(null);
-  adminCycle++;clearTimeout(adminTimer);adminController?.abort();adminController=null;adminKey='';adminData=null;adminCertain=false;adminBusy=false;
+  adminCycle++;clearTimeout(adminTimer);adminController?.abort();adminController=null;adminKey='';adminData=null;adminCertain=false;personnalisationTelegram=null;controleBusy=false;adminBusy=false;
   try{localStorage.removeItem(adminStorageKey)}catch{}$('admin-remember').checked=false;
   $('admin-key').value='';$('admin-credential-value').value='';$('admin-config-value').hidden=true;$('admin-controls').hidden=true;$('admin-access').hidden=false;$('admin-access').open=true;$('association').hidden=false;document.body.classList.remove('has-admin');
   deconnecter(message);$('admin-login-feedback').textContent=message;$('disconnect').textContent='Déconnecter l’écran';boutonsAdmin();retours=[];naviguer('table',false);
  }
  // Lit ou change la pause des messages spontanés. Une erreur laisse l'état « inconnu » sans bloquer le reste.
  async function controler(action){
+  if(controleBusy)return;
   const code=adminData?.partie?.code;if(!adminKey||!code||(action==='etat'&&document.hidden))return;
+  controleBusy=true;boutonsAdmin();
   const cycle=adminCycle,aborter=new AbortController(),timeout=setTimeout(()=>aborter.abort(),15000);
   try{
    const response=await fetch(CONTROLE_ENDPOINT,{method:'POST',headers:{Authorization:'Bearer '+adminKey},body:new URLSearchParams({action,partie:code}),credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:aborter.signal});
    if(cycle!==adminCycle)return;
    const data=response.ok?await response.json():null;
    if(cycle!==adminCycle)return;
-   if(data?.ok&&typeof data.pause==='boolean'){pauseMessages=data.pause;window.Plateau?.annonces(data.annonces);if(action!=='etat')$('admin-feedback').textContent=data.message||'Fait.'}
-   else{pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}
-  }catch{if(cycle===adminCycle){pauseMessages=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}}
-  finally{clearTimeout(timeout);if(cycle===adminCycle)boutonsAdmin()}
+   if(data?.ok&&typeof data.pause==='boolean'){pauseMessages=data.pause;personnalisationTelegram=typeof data.personnalisation==='boolean'?data.personnalisation:null;window.Plateau?.annonces(data.annonces);if(action!=='etat')$('admin-feedback').textContent=data.message||'Fait.'}
+   else{pauseMessages=null;personnalisationTelegram=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}
+  }catch{if(cycle===adminCycle){pauseMessages=null;personnalisationTelegram=null;if(action!=='etat')$('admin-feedback').textContent='La pause n’a pas pu être confirmée. Actualise puis réessaie.'}}
+  finally{clearTimeout(timeout);if(cycle===adminCycle){controleBusy=false;boutonsAdmin()}}
  }
  async function commander(action,extra={}){
   if(!adminKey||adminBusy||(action==='etat'&&document.hidden))return;
@@ -131,7 +134,7 @@
    adminData=data;adminCertain=true;memoriserAcces();$('admin-controls').hidden=false;$('admin-access').open=false;$('admin-access').hidden=true;$('association').hidden=true;$('admin-login-feedback').textContent='';$('disconnect').textContent='Se déconnecter';document.body.classList.add('has-admin');
    if(data.partie){association={partie:data.partie.code,cle:''};afficher(data)}else{association=null;document.body.classList.remove('is-connected');$('table').hidden=true;$('catalogue').hidden=false;etat('Organisateur connecté','live')}
    if(action!=='etat')$('admin-feedback').textContent=data.message||'Action effectuée.';
-   if(data.partie?.statut==='en_cours')controler('etat');else pauseMessages=null;
+   if(data.partie?.statut==='en_cours')controler('etat');else{pauseMessages=null;personnalisationTelegram=null;}
    // Plateau de jeu : reçoit l'état public, diffuse l'accueil au lancement et un message à chaque sceau ouvert.
    window.Plateau?.mettreAJour(data);
    if(action==='demarrer'&&data.partie?.statut==='en_cours')window.Plateau?.ouvrir();
