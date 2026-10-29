@@ -209,8 +209,9 @@
   bruit.minuterie = setTimeout(() => {
    if(!etat.ouvert || !etat.deverrouille || !etat.musiqueVoulue) return;
    // Jamais par-dessus une voix, une sonnerie ou un appel.
-   if(!etat.voixEnCours && !etat.appel && !etat.sonnerie && !document.hidden){
+   if(!etat.voixEnCours && !archiveParle() && !etat.appel && !etat.sonnerie && !document.hidden){
     listeEffets().then(() => {
+     if(!etat.ouvert || !etat.musiqueVoulue || etat.voixEnCours || archiveParle() || etat.appel || etat.sonnerie || document.hidden) return;
      const pool = reglesEffets(); if(!pool.length) return;
      let id; do { id = pool[Math.floor(Math.random() * pool.length)]; } while(id === bruit.dernier && pool.length > 1);
      bruit.dernier = id; jouerEffet(id);
@@ -221,8 +222,14 @@
  }
  let musiqueActive = false;
  // La musique a son propre niveau (curseur « Musique ») et baisse pendant une voix, une sonnerie ou un bruit.
- function volumeEffectif(){ return etat.volume * etat.musiqueNiveau * (etat.voixEnCours || etat.sonnerie ? 0.28 : etat.effetEnCours ? 0.5 : 1); }
+ function archiveParle(){ const a = $('pl-appel-retrouve')?.querySelector('audio'); return !!a && !a.paused && !a.ended; }
+ function arreterArchive(){ const a = $('pl-appel-retrouve')?.querySelector('audio'); if(a) a.pause(); }
+ function volumeEffectif(){ return etat.volume * etat.musiqueNiveau * (etat.voixEnCours || archiveParle() || etat.sonnerie ? 0.28 : etat.effetEnCours ? 0.5 : 1); }
  function regler(){
+  voix.volume = Math.min(1, Math.max(0, etat.volume));
+  const archive = $('pl-appel-retrouve')?.querySelector('audio');
+  // L'archive est mesurée à -12,9 LUFS, contre -21,6 pour l'introduction.
+  if(archive) archive.volume = voix.volume * 0.4;
   if(bruit.sortie) bruit.sortie.gain.value = etat.volume;
   if(etat.bus && etat.ctx) etat.bus.gain.setTargetAtTime(volumeEffectif(), etat.ctx.currentTime, 0.35);
   else musique.volume = Math.min(1, volumeEffectif());
@@ -290,7 +297,7 @@
  function appeler(id){
   if(id.startsWith('conclusion-'))etat.enAttente=null;
   if(etat.appel && etat.appel.phase !== 'termine') { noterManque(id); marquerJoue(id); rendre(); return; } // un appel à la fois : le suivant sera manqué
-  stopperMinuteries(); marquerJoue(id);
+  arreterArchive(); stopperMinuteries(); marquerJoue(id);
   etat.appel = {id, phase: 'sonne', debut: Date.now()}; etat.sonnerie = true; regler();
   // Un sceau qui cède s'annonce d'abord par un claquement de verrou, puis le téléphone sonne.
   const sonner = () => { if(etat.appel?.id === id && etat.appel.phase === 'sonne' && etat.deverrouille) sonnerie.demarrer(); };
@@ -318,7 +325,7 @@
  function jouer(id, automatique){
   const m = messageDe(id); if(!m) return;
   if(!etat.deverrouille){ etat.enAttente = id; rendre(); return; }
-  arreterVoix(); const jeton = ++etat.jeton;
+  arreterArchive(); arreterVoix(); const jeton = ++etat.jeton;
   etat.courant = id; etat.voixEnCours = true; etat.absent = false; marquerJoue(id);
   const essayer = i => {
    const source = m.sources[i];
@@ -346,7 +353,7 @@
   if(etat.annonceCourante || !etat.fileAnnonces.length) return;
   const a = etat.annonceCourante = etat.fileAnnonces.shift();
   // Le son d'annonce ne couvre jamais une voix ni un appel : le bandeau, lui, s'affiche toujours.
-  if(etat.deverrouille && !etat.voixEnCours && !etat.appel && !etat.sonnerie) jouerEffet(a.type === 'approche' ? 'approche' : a.type === 'mur' ? 'gravure' : 'pouvoir');
+  if(etat.deverrouille && !etat.voixEnCours && !archiveParle() && !etat.appel && !etat.sonnerie) jouerEffet(a.type === 'approche' ? 'approche' : a.type === 'mur' ? 'gravure' : 'pouvoir');
   clearTimeout(etat.minuterieAnnonce); etat.minuterieAnnonce = setTimeout(masquerAnnonce, 14000);
   rendre();
  }
@@ -465,7 +472,7 @@
   bloc.querySelector('.pl-reponse-reserve').hidden=horloge;
   bloc.querySelectorAll('.pl-reponse-reserve')[1].textContent=horloge?'Comparez les références : les morceaux d’un même document ou message se complètent. Les heures du relevé caméra doivent être corrigées grâce aux autres fragments.':'Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.';
   let archive=$('pl-appel-retrouve');
-  if(liee&&!archive){archive=document.createElement('article');archive.id='pl-appel-retrouve';archive.className='pl-archive-retour';archive.innerHTML='<p class="pl-archive-cote">LA RÉSERVE · ENREGISTREMENT RETROUVÉ</p><h3>Ce qui s’est passé derrière le panneau</h3><p>Écoutez ensemble cette trace de Sally pour reconstituer les événements. Vos fragments Telegram permettront ensuite d’en authentifier les horaires.</p><audio controls preload="none" src="assets/preuves/affaire-01/appel-sally.mp3" aria-label="Appel retrouvé de Sally"></audio><p>Cette archive correspond à l’événement « Appel ». L’introduction de l’iPad présente l’enquête.</p>';bloc.append(archive);archive.querySelector('audio').addEventListener('play',()=>arreterVoix());}
+  if(liee&&!archive){archive=document.createElement('article');archive.id='pl-appel-retrouve';archive.className='pl-archive-retour';archive.innerHTML='<p class="pl-archive-cote">LA RÉSERVE · ENREGISTREMENT RETROUVÉ</p><h3>Ce qui s’est passé derrière le panneau</h3><p>Écoutez ensemble cette trace de Sally pour reconstituer les événements. Vos fragments Telegram permettront ensuite d’en authentifier les horaires.</p><audio controls preload="none" src="assets/preuves/affaire-01/appel-sally.mp3" aria-label="Appel retrouvé de Sally"></audio><p>Cette archive correspond à l’événement « Appel ». L’introduction de l’iPad présente l’enquête.</p>';bloc.append(archive);const lecteur=archive.querySelector('audio');lecteur.addEventListener('play',()=>{if(etat.appel || etat.sonnerie){lecteur.pause();return;}arreterVoix();regler();});for(const evenement of ['pause','ended','error'])lecteur.addEventListener(evenement,regler);regler();}
   if(archive){archive.hidden=!liee;if(!liee)archive.querySelector('audio').pause();}
   bloc.querySelector('time').textContent=support.message.heure;
   bloc.querySelector('time').dateTime=support.message.heure;
@@ -737,7 +744,7 @@
   if($('pl-chemin-dialog')?.open)$('pl-chemin-dialog').close();
   if($('pl-retour-dialog')?.open)$('pl-retour-dialog').close();
   if(etat.appel?.phase === 'sonne') noterManque(etat.appel.id);
-  etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterVoix(); arreterMusique();
+  etat.appel = null; stopperMinuteries(); etat.ouvert = false; arreterArchive(); arreterVoix(); arreterMusique();
   clearTimeout(etat.minuterieAnnonce); etat.annonceCourante = null; etat.fileAnnonces = []; surveillerPouvoirs(); rendre();
  }
 
@@ -783,7 +790,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 23 : enquête reliée, boîtier du retour et archives des portes fondées sur vos découvertes.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 24 : volume des voix synchronisé et ambiance atténuée pendant les archives.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
