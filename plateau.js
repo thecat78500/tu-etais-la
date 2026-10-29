@@ -441,11 +441,13 @@
   $('plateau').classList.toggle('pl-preuves-reserve',actif);
   if(!actif){
    if(bloc)bloc.hidden=true;
+   if($('pl-appel-retrouve'))$('pl-appel-retrouve').querySelector('audio').pause();
    if($('pl-photo-dialog')?.open)$('pl-photo-dialog').close();
    $('pl-image').alt='Illustration d’ambiance de l’affaire';
    return;
   }
-  const horloge=['L’heure véritable','Le temps derrière la porte'].includes(data.progression.active.titre);
+  const liee=data.progression.active.enonce.includes('authentifier cette chronologie');
+  const horloge=liee||['L’heure véritable','Le temps derrière la porte'].includes(data.progression.active.titre);
   $('pl-enonce').textContent=horloge?data.progression.active.enonce:"Reconstituez précisément ce qui est arrivé à Sally et dans l'ordre précis. Chaque joueur possède un indice. Racontez ce que chaque preuve vous apprend. Une fois l’ordre trouvé, une personne écrit dans Telegram « je propose » suivi des cinq événements dans l'ordre, séparés par des virgules.";
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-reserve';bloc.setAttribute('aria-label','Les traces communes');
@@ -458,10 +460,13 @@
    $('pl-photo-ouvrir').addEventListener('click',()=>{if(supportReserve(etat.data)&&!dialogue.open)dialogue.showModal()});
   }
   bloc.hidden=false;
-  bloc.querySelector('h3').hidden=horloge;
-  bloc.querySelector('.pl-evenements-reserve').hidden=horloge;
+  bloc.querySelector('h3').hidden=horloge&&!liee;
+  bloc.querySelector('.pl-evenements-reserve').hidden=horloge&&!liee;
   bloc.querySelector('.pl-reponse-reserve').hidden=horloge;
   bloc.querySelectorAll('.pl-reponse-reserve')[1].textContent=horloge?'Comparez les références : les morceaux d’un même document ou message se complètent. Les heures du relevé caméra doivent être corrigées grâce aux autres fragments.':'Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.';
+  let archive=$('pl-appel-retrouve');
+  if(liee&&!archive){archive=document.createElement('article');archive.id='pl-appel-retrouve';archive.className='pl-archive-retour';archive.innerHTML='<p class="pl-archive-cote">LA RÉSERVE · ENREGISTREMENT RETROUVÉ</p><h3>Ce qui s’est passé derrière le panneau</h3><p>Écoutez ensemble cette trace de Sally pour reconstituer les événements. Vos fragments Telegram permettront ensuite d’en authentifier les horaires.</p><audio controls preload="none" src="assets/preuves/affaire-01/appel-sally.mp3" aria-label="Appel retrouvé de Sally"></audio><p>Cette archive correspond à l’événement « Appel ». L’introduction de l’iPad présente l’enquête.</p>';bloc.append(archive);archive.querySelector('audio').addEventListener('play',()=>arreterVoix());}
+  if(archive){archive.hidden=!liee;if(!liee)archive.querySelector('audio').pause();}
   bloc.querySelector('time').textContent=support.message.heure;
   bloc.querySelector('time').dateTime=support.message.heure;
   bloc.querySelector('.pl-message-sally p').textContent=support.message.lignes.join('\n');
@@ -534,6 +539,15 @@
   const liste=$('pl-retour-instructions');liste.replaceChildren();
   const notice=data.progression.active.enonce.includes('procédure de cette nuit')?'assets/preuves/affaire-01/rejouabilite-v1/gestes-protection.png':'assets/preuves/affaire-01/retour-v1/gestes-preparation.png';
   bloc.querySelector('img').src=notice;$('pl-retour-dialog').querySelector('img').src=notice;
+  const dispositif=support.dispositif;
+  if(dispositif?.schema==='boitier-retour-v1'){
+   bloc.querySelector('img').src='assets/preuves/affaire-01/boitier-retour.svg';$('pl-retour-dialog').querySelector('img').src='assets/preuves/affaire-01/boitier-retour.svg';
+   for(const img of [bloc.querySelector('img'),$('pl-retour-dialog').querySelector('img')])img.alt='Boîtier de retour : loquet du rempart, borne Galerie, plaque de contrôle, cadran du seuil et capot d’ouverture.';
+   $('pl-retour-ouvrir').querySelector('span').firstChild.textContent='Examiner le boîtier de retour';
+   let reperes=$('pl-retour-reperes');if(!reperes){reperes=document.createElement('div');reperes.id='pl-retour-reperes';reperes.className='pl-reperes-retour';bloc.prepend(reperes);}
+   reperes.hidden=false;reperes.replaceChildren();for(const [titre,valeur] of [['Cadran · découverte du sceau II',dispositif.seuil],['Plaque · dernier contrôle du sceau III',dispositif.relais]]){const carte=document.createElement('article'),t=document.createElement('small'),v=document.createElement('strong');t.textContent=titre;v.textContent=valeur;carte.append(t,v);reperes.append(carte);}
+   let legendes=$('pl-boitier-legendes');if(!legendes){legendes=document.createElement('dl');legendes.id='pl-boitier-legendes';$('pl-retour-dialog').append(legendes);}legendes.replaceChildren();for(const [geste,texte] of Object.entries(dispositif.gestes||{})){const terme=document.createElement('dt'),explication=document.createElement('dd');terme.textContent=geste;explication.textContent=texte;legendes.append(terme,explication);}
+  }else{if($('pl-retour-reperes'))$('pl-retour-reperes').hidden=true;if($('pl-boitier-legendes'))$('pl-boitier-legendes').replaceChildren();}
   if(Array.isArray(support.instructions))for(const instruction of support.instructions){if(typeof instruction!=='string'||instruction.length>80)continue;const item=document.createElement('li');item.textContent=instruction;liste.append(item)}
   bloc.hidden=false;
  }
@@ -562,6 +576,17 @@
   $('pl-aide-exemple').textContent=portes?'Au dernier sceau, « je propose » ne choisit pas la porte : il faut un vote de chaque joueur.':'Exemple fictif : une personne sait « A avant B », une autre « B avant C ». Vous en déduisez ensemble A → B → C. Une seule personne écrit alors « je propose A, B, C ». Utilisez les mots demandés par votre énigme.';
   if(!portes&&prog?.active?.titre==='L’heure véritable')$('pl-aide-exemple').textContent='Format de réponse : « je propose HH:MM:SS, HH:MM:SS ». Donnez d’abord l’entrée, puis la fermeture ; utilisez les heures corrigées grâce à vos fragments.';
   if(!portes&&prog?.active?.titre==='Le temps derrière la porte')$('pl-aide-exemple').textContent='Format de réponse : « je propose [minutes] min [secondes] s ». Calculez la durée entre l’entrée et la réouverture, en utilisant l’heure réelle de chaque événement.';
+  if(!portes&&prog?.active?.enonce?.includes('authentifier cette chronologie'))$('pl-aide-exemple').textContent='Une seule réponse complète : « je propose [les cinq événements] ; heures : [entrée], [fermeture] » ou « je propose [les cinq événements] ; durée : [minutes] min [secondes] s », selon la consigne. Recoupez le récit et les horaires.';
+  if(portes?.registre_lie)$('pl-aide-exemple').textContent='Utilisez le carnet : nom du seuil (II), dernier lieu avant la Galerie (III), geste juste avant ATTENDRE LE CHOIX (IV). Dans chaque tableau privé, la ligne correspondante donne une porte à écarter. Ne mélangez pas les lignes de parties différentes.';
+ }
+ function rendreDossierRetour(prog){
+  let bloc=$('pl-dossier-retour');const actif=prog?.portes?.registre_lie&&prog.portes.phase!=='fin';
+  if(!actif){if(bloc)bloc.hidden=true;return;}
+  if(!bloc){bloc=document.createElement('section');bloc.id='pl-dossier-retour';bloc.className='pl-archive-retour';bloc.setAttribute('aria-label','Repères pour lire les archives privées');$('pl-portes-consigne').after(bloc);}
+  const lire=n=>(prog.carnet||[]).find(e=>Number(e.etape)===n)?.reponse||'',chemin=lire(3).split(/\s*→\s*/),gestes=lire(4).split(/\s*→\s*/);
+  const valeurs=[['II · Nom du seuil',lire(2).split(' : ')[0]],['III · Dernier lieu avant la Galerie',chemin.at(-2)],['IV · Geste juste avant l’attente',gestes.at(-2)]];
+  bloc.hidden=false;bloc.innerHTML='<p class="pl-archive-cote">VOS DÉCOUVERTES SERVENT MAINTENANT</p><div class="pl-reperes-retour"></div><p>Choisissez la ligne correspondante dans vos tableaux Telegram. Elle donne une porte à écarter ; confrontez ensuite vos déductions.</p>';
+  const liste=bloc.querySelector('.pl-reperes-retour');for(const [titre,valeur] of valeurs){const carte=document.createElement('article'),t=document.createElement('small'),v=document.createElement('strong');t.textContent=titre;v.textContent=valeur||'Consultez le carnet commun';carte.append(t,v);liste.append(carte);}
  }
  function rendre(){
   const ov = $('plateau'); if(!ov) return;
@@ -598,7 +623,7 @@
    const fin=portes.phase==='fin', vote=['vote','vote_2'].includes(portes.phase);
    const labels={attente:'Le débat va s’ouvrir',debat:'Le débat est ouvert',vote:'Vote secret',debat_egalite:'Égalité : nouveau débat',vote_2:'Second vote secret',fin:'La porte est ouverte'};
    $('pl-titre').textContent=fin?portes.resultat.texte:'Les cinq portes';
-   $('pl-enonce').textContent=fin?'Le choix est fait. Voici ce que chacun cherchait à obtenir.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
+   $('pl-enonce').textContent=fin?'Le choix est fait. Voici ce que chacun cherchait à obtenir.':portes.registre_lie?'Vos découvertes ouvrent le registre des retours. Dans chaque tableau privé Telegram, choisissez la ligne correspondant au seuil identifié (II), au dernier lieu avant la Galerie (III) ou au dernier geste avant l’attente (IV). Cette ligne désigne une porte à écarter. Comparez vos déductions avant de voter.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
    $('pl-erreurs').hidden=true;
    const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
@@ -610,6 +635,7 @@
   }
   $('pl-carnet').hidden = !(prog?.carnet?.length);
   $('pl-carnet-liste').innerHTML = (prog?.carnet || []).map(e => `<li><span>${ROMAINS[e.etape - 1]}</span> ${echapper(e.titre)} <b>${echapper(e.reponse)}</b></li>`).join('');
+  rendreDossierRetour(prog);
   $('pl-joueurs').innerHTML = (data?.joueurs || []).map(j => `<li>${echapper(j.prenom)}</li>`).join('');
   // Voix et ambiance.
   const liste = messages(), dernier = messageDe(etat.courant) || liste.at(-1);
@@ -757,7 +783,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 22 : variantes de l’affaire 1, preuves complémentaires de 4 à 10 joueurs et plan de cette partie.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 23 : enquête reliée, boîtier du retour et archives des portes fondées sur vos découvertes.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },

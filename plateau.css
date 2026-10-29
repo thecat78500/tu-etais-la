@@ -373,3 +373,14 @@ body.plateau-ouvert{overflow:hidden}
 #plateau .pl-appel[data-conclusion="true"] .pl-decrocher{color:#20130b}
 #plateau .pl-appel[data-appelant="entite"] .pl-decrocher{color:#210b09}
 @media(max-width:600px){#plateau #pl-fin-appel{margin-left:0;display:block}.pl-appel[data-conclusion="true"] .pl-appel-texte{max-height:24vh}}
+/* Archives de retour : mêmes matières que la maison, repères issus de la partie. */
+.pl-archive-retour{margin:1.2rem 0;padding:1.2rem;background:#171e1e;border:1px solid #786343;border-left:3px solid #c39a57}
+.pl-archive-retour .pl-archive-cote{font:11px 'Courier Prime',monospace;letter-spacing:.15em;color:#c6a06c}
+.pl-archive-retour audio{width:100%;margin:.6rem 0}
+.pl-reperes-retour{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin:1rem 0}
+.pl-reperes-retour article{padding:1rem;border:1px solid #786343;background:linear-gradient(135deg,#29271f,#151c1d)}
+.pl-reperes-retour small{display:block;margin-bottom:.6rem;color:#c7ac7b;font:11px 'Courier Prime',monospace}
+.pl-reperes-retour strong{font:22px 'IM Fell English',Georgia,serif;color:#eee4cf}
+#pl-boitier-legendes{display:grid;grid-template-columns:max-content 1fr;gap:.6rem 1rem;padding:1rem;color:#e5dac4}
+#pl-boitier-legendes dt{color:#d0ad70}#pl-boitier-legendes dd{margin:0}
+@media(max-width:600px){.pl-reperes-retour{grid-template-columns:1fr}#pl-boitier-legendes{grid-template-columns:1fr}}
