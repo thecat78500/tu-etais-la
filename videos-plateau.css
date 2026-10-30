@@ -1,0 +1,15 @@
+.pl-cinema{flex:1;min-height:0;display:flex;flex-direction:column;background:#080b0b}
+.pl-cinema[hidden],.pl-vue img[hidden]{display:none!important}
+.pl-cinema video{display:block;width:100%;flex:1;min-height:0;max-height:58vh;object-fit:contain;background:#080b0b}
+.pl-cinema-revoir{flex:none;align-self:flex-start;margin:8px 12px;padding:6px 10px;color:var(--papier,#eee8d4);font:inherit;font-size:.8rem;border:1px solid var(--trait,#45443b);background:transparent;cursor:pointer}
+#plateau.pl-video-appel .pl-appel{inset:auto 14px 112px auto;width:min(310px,calc(100vw - 28px));height:auto;min-height:0;padding:12px;border:1px solid var(--trait,#555);background:rgba(8,10,10,.95);box-shadow:0 8px 30px #0008}
+#plateau.pl-video-appel .pl-appel-carte{width:100%;gap:6px}
+#plateau.pl-video-appel .pl-appel-halo,#plateau.pl-video-appel .pl-appel-visage,#plateau.pl-video-appel .pl-appel-onde,#plateau.pl-video-appel .pl-appel-texte{display:none}
+#plateau.pl-video-appel .pl-appel-nom{font-size:26px}
+#plateau.pl-video-appel .pl-appel-etat{font-size:10px;letter-spacing:.15em}
+#plateau.pl-video-appel .pl-appel-sujet{font-size:13px}
+#plateau.pl-video-appel .pl-appel-duree{font-size:12px}
+#plateau.pl-video-appel .pl-appel-actions{margin:0;width:100%}
+#plateau.pl-video-appel .pl-raccrocher{padding:8px 14px;font-size:13px;min-height:0}
+#plateau.pl-video-appel .pl-icone{display:none}
+@media(max-width:600px){#plateau.pl-video-appel .pl-appel{bottom:90px;width:min(250px,calc(100vw - 28px));padding:10px}}

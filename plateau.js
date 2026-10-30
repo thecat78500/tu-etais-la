@@ -641,6 +641,7 @@
   rendrePreuvesChemin(data);
   rendrePreuvesRetour(data);
   rendreScene(data,affaire);
+  window.VideosPlateau?.mettreAJour(data,etat.ouvert,{appel:etat.appel?.phase,deverrouille:etat.deverrouille});
   $('pl-sceaux').innerHTML = ROMAINS.map((r, i) => `<li class="${i < resolues ? 'ouvert' : actif && actif.etape === i + 1 ? 'courant' : ''}" aria-label="Sceau ${i + 1}${i < resolues ? ' ouvert' : ''}"><span>${r}</span></li>`).join('');
   // Compteur d'erreurs de l'énigme en cours et proximité de l'entité (nombres seulement).
   const er = etat.erreurs, vers = Math.min(3, er?.vers_seuil || 0), proche = Math.min(5, er?.proximite || 0);
@@ -824,7 +825,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 30 : porte cachée cohérente avec la vidéo.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 31 : scènes vidéo de découverte et conclusions.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
