@@ -1,0 +1,9 @@
+#pl-aide-reponse[data-regles="1"]{margin:18px 0;padding:14px 16px;border-left:2px solid var(--braise,#b39356);background:#ffffff05}
+#pl-aide-reponse[data-regles="1"] details{margin:12px 0}
+#pl-aide-reponse[data-regles="1"] ol{padding-left:1.35em}
+#pl-aide-reponse[data-regles="1"] li{margin:9px 0}
+#pl-aide-reponse .pl-format-reponse{margin:14px 0;padding:12px;background:#0003;border:1px solid var(--trait,#555)}
+#pl-aide-reponse .pl-format-reponse strong{display:block;margin-bottom:8px;color:var(--braise,#d5b77a)}
+#pl-format-texte{display:block;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:.9em}
+#pl-aide-commun{white-space:pre-line}
+#pl-format-note{font-size:.85em;line-height:1.5;margin:8px 0 0}

@@ -453,13 +453,8 @@
    image.alt='Illustration d’ambiance de l’affaire';$('pl-trace').textContent=affaire?.intro||'';
   }
  }
- function texteChronologieClaire(mode='chronologie'){
- const base='Reconstituez la nuit de Sally : classez les cinq événements, du premier au dernier.\n\nChacun demande sa preuve dans sa conversation Telegram avec Sally. Faites ensuite un tour de table : racontez ce que votre preuve vous apprend.\n\nRéunissez les morceaux d’un même document : ils ont le même papier et le même tampon d’archives. Un joueur peut avoir l’événement, un autre son heure : ces deux morceaux vont ensemble. Votre fragment seul peut donc être incomplet. Comparez les heures reconstituées avec le message daté sur l’iPad, puis complétez la chronologie avec le récit de Sally.\n\n« MESSAGE » désigne le texte daté affiché sur l’iPad. « APPEL » désigne le vocal privé de Sally, découpé entre les joueurs sur Telegram. Dans cet appel, elle raconte ce qui lui est déjà arrivé : distinguez le moment où elle vous parle des événements qu’elle raconte.\n\nÀ classer : APPEL ; PANNEAU DÉPLACÉ ; PORTE REFERMÉE ; ENTRÉE ; MESSAGE.';
- if(mode==='heures')return base+'\n\nPour authentifier cette chronologie, retrouvez aussi les heures réelles de l’entrée et de la fermeture. L’horloge de la caméra est déréglée : rassemblez l’écart mesuré et le message qui précise si elle avance ou retarde, puis corrigez les deux heures.\n\nUne personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules, puis « ; heures : HH:MM:SS, HH:MM:SS » pour l’entrée et la fermeture.';
- if(mode==='duree')return base+'\n\nPour authentifier cette chronologie, retrouvez aussi la durée entre l’entrée de Sally et la réouverture de la réserve par le groupe. Corrigez l’heure de la caméra grâce à vos autres preuves ; l’heure du téléphone est l’heure réelle.\n\nUne personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules, puis « ; durée : … min … s ».';
- return base+'\n\nUne fois l’ordre trouvé ensemble, une personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules.';
-}
- function modeChronologieClaire(actif){return actif.enonce.includes("authentifier cette chronologie")?(/durée|duree/.test(actif.enonce)?"duree":"heures"):"chronologie"}
+ function texteChronologieClaire(mode='chronologie'){return window.ReglesAffaire01?.texte({etape:1},{mode})||etat.data?.progression?.active?.enonce||'';}
+ function modeChronologieClaire(actif){return window.ReglesAffaire01?.mode(actif)||"chronologie"}
  const EVENEMENTS_RESERVE = ['Appel', 'Panneau déplacé', 'Porte refermée', 'Entrée', 'Message'];
  function supportReserve(data){
   const actif=data?.progression?.active, support=actif?.support_public;
@@ -589,6 +584,18 @@
   bloc.hidden=false;
  }
  function rendreAideReponse(prog){
+  if(Number(etat.data?.partie?.scenario_id)!==1||!window.ReglesAffaire01)return rendreAideReponseAvant(prog);
+  const portes=prog?.portes,fin=portes?.phase==='fin',actif=prog?.active||(portes?{etape:5}:null);let aide=$('pl-aide-reponse');
+  if(!actif||fin){if(aide)aide.hidden=true;return;}const guide=window.ReglesAffaire01.sceau(actif);if(!guide)return;
+  if(!aide){aide=document.createElement('section');aide.id='pl-aide-reponse';$('pl-enonce').after(aide);}if(aide.dataset.regles!=='1'){aide.dataset.regles='1';aide.innerHTML='<p id="pl-aide-consigne"></p><details id="pl-aide-methode" open><summary>Comment résoudre ce sceau ?</summary><ol id="pl-aide-etapes"></ol></details><div class="pl-format-reponse"><strong id="pl-format-titre"></strong><code id="pl-format-texte"></code><p id="pl-format-note"></p></div><details><summary>Un exemple de raisonnement</summary><p id="pl-aide-exemple"></p></details><details><summary>Partager, mentir et contester : les règles communes</summary><p id="pl-aide-commun"></p></details>';}
+  aide.hidden=false;const cle=String(actif.etape);if(aide.dataset.sceau!==cle){$('pl-aide-methode').open=true;aide.dataset.sceau=cle;}
+  $('pl-enonce').textContent=guide.question;$('pl-aide-consigne').textContent=Number(actif.etape)===5?'Discutez ensemble, puis chacun vote selon son objectif secret.':'Comparez vos preuves autour de la table. Une personne envoie ensuite la réponse complète à Sally.';
+  $('pl-aide-etapes').replaceChildren(...guide.methode.map(texte=>{const li=document.createElement('li');li.textContent=texte;return li}));
+  const vote=portes&&['vote','vote_2'].includes(portes.phase),n=Number(actif.etape);$('pl-format-titre').textContent=n===5?(vote?'Votre vote privé dans Telegram':'Quand vous avez fini de discuter'):'Réponse à écrire à Sally dans Telegram';$('pl-format-texte').textContent=n===5&&!vote?'prêt à voter':guide.format;
+  $('pl-format-note').textContent=n===5&&!vote?'Attendez l’annonce d’ouverture, puis chacun écrit « je vote la porte de… » avec son choix.':n===5?'Le vote peut être modifié jusqu’à sa clôture.':'Remplacez les éléments entre crochets par vos découvertes. Une proposition complète à la fois.';
+  $('pl-aide-exemple').textContent=guide.exemple;$('pl-aide-commun').textContent=window.ReglesAffaire01.communes;
+ }
+ function rendreAideReponseAvant(prog){
   let aide=$('pl-aide-reponse');
   if(!aide){
    aide=document.createElement('section');aide.id='pl-aide-reponse';aide.setAttribute('aria-label','Partager les indices et répondre');
@@ -662,6 +669,7 @@
    const labels={attente:'Le débat va s’ouvrir',debat:'Le débat est ouvert',vote:'Vote secret',debat_egalite:'Égalité : nouveau débat',vote_2:'Second vote secret',fin:'La porte est ouverte'};
    $('pl-titre').textContent=fin?portes.resultat.texte:'Les cinq portes';
    $('pl-enonce').textContent=fin?'Le choix est fait. Voici ce que chacun cherchait à obtenir.':portes.registre_lie?'Vos découvertes ouvrent le registre des retours. Dans chaque tableau privé Telegram, choisissez la ligne correspondant au seuil identifié (II), au dernier lieu avant la Galerie (III) ou au dernier geste avant l’attente (IV). Cette ligne désigne une porte à écarter. Comparez vos déductions avant de voter.':'Une seule porte ramène Sally. Recoupez vos exclusions avant de choisir.';
+   if(!fin&&Number(data.partie.scenario_id)===1&&window.ReglesAffaire01)$('pl-enonce').textContent=window.ReglesAffaire01.sceau({etape:5}).question;
    $('pl-erreurs').hidden=true;
    const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
@@ -825,7 +833,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 32 : porte et réserve raccordées dans toutes les scènes.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 33 : objectifs, méthode et réponses expliqués pour chaque sceau.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
