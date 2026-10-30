@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "audios": {
+    "fin-privee-ambigu-1-defaite.mp3": {
+      "octets": 537778,
+      "sha256": "aa11ecd9804318c18d9a761427503622abab7b7ba0acc0b679700836c8a06734"
+    },
+    "fin-privee-ambigu-2-defaite.mp3": {
+      "octets": 519624,
+      "sha256": "bfd9741c554e8860ddb47455ff631a6750b6446e1c1b310488f4206d25f036f9"
+    },
+    "fin-privee-ambigu-3-defaite.mp3": {
+      "octets": 470170,
+      "sha256": "8ff81efc3e79f70bd69227f5f4f680cc4c04eaf1b0c76b990d8eb2c16deeb6ad"
+    },
+    "fin-privee-ambigu-3-victoire.mp3": {
+      "octets": 433236,
+      "sha256": "2ee32e40e5e89651c5bf6b1c3e5fcabedb985c680e7e02a74426f5fc43625217"
+    },
+    "fin-privee-ambigu-4-defaite.mp3": {
+      "octets": 449512,
+      "sha256": "99b7bb936f546577aeba7a016a144fb23f8e27ef909146f2b911bcc76eb846ce"
+    },
+    "fin-privee-ambigu-4-victoire.mp3": {
+      "octets": 491570,
+      "sha256": "9cf86cf64680c39d10d5d665f0c704d2d0d37637e15cbb9b0008ee9484771d1f"
+    },
+    "fin-privee-ambigu-5-defaite.mp3": {
+      "octets": 449512,
+      "sha256": "d8c0f2eb943912ef3e7b5c13b73305a9c0a16b7d1d2a70a924ff54136dabf2fb"
+    },
+    "fin-privee-ambigu-5-victoire.mp3": {
+      "octets": 470170,
+      "sha256": "56e5587dee72440ecf1be179965eb859b63b73e3ce2ad31f284357d316d798ad"
+    },
+    "fin-privee-gentil-1-victoire.mp3": {
+      "octets": 628242,
+      "sha256": "2669c7f2d3224458e3effc6823b55c76f1278b27ae4ea6a9ece4a25f214c02af"
+    },
+    "fin-privee-gentil-2-defaite.mp3": {
+      "octets": 462658,
+      "sha256": "67f5e1bcf9603ba15d2ff81f453808750c9d83b0714394113b669676a15d6bdc"
+    },
+    "fin-privee-gentil-3-defaite.mp3": {
+      "octets": 512738,
+      "sha256": "85e0d35986ab5ef5a4a42458b434e8f7a412bf7dc7f5d7f19ff1ebc67ad419eb"
+    },
+    "fin-privee-gentil-4-defaite.mp3": {
+      "octets": 451390,
+      "sha256": "40fedba2478f9fd98830ec34e010cc44331f5d7d7ca6a325465d2b232a8cca8e"
+    },
+    "fin-privee-gentil-5-defaite.mp3": {
+      "octets": 508356,
+      "sha256": "c6586c4e4b3457d1d37350925d1f44c609ad1785ea50ec1da16ccee8e084c4da"
+    },
+    "fin-privee-mechant-1-defaite.mp3": {
+      "octets": 494077,
+      "sha256": "54668601eaac2f968f8eedba2b53bba372e8056454d53dac45507c94921a7b3f"
+    },
+    "fin-privee-mechant-2-victoire.mp3": {
+      "octets": 479031,
+      "sha256": "f9e152b54b89bdcc53feba0cfe0e048a6d9d258e313cc5c4fb9904e821d08fd2"
+    },
+    "fin-privee-mechant-3-defaite.mp3": {
+      "octets": 465238,
+      "sha256": "4be3bb89d79ed22a8f50fd7479098669ccdf9202537abba1b79cca5bcc2a7269"
+    },
+    "fin-privee-mechant-4-victoire.mp3": {
+      "octets": 468292,
+      "sha256": "39ddfa74412ee456ef2d313687a39eb54bad1cbae68922ee70308834fb7e8476"
+    },
+    "fin-privee-mechant-5-defaite.mp3": {
+      "octets": 462730,
+      "sha256": "473767fb4d5d56ff4e5ecd7805591c8ea38ed3bc8c6d12cd97499e94a3fee94b"
+    }
+  }
+}
