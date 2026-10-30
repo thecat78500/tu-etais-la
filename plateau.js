@@ -584,7 +584,7 @@
   bloc.hidden=false;
  }
  function rendreAideReponse(prog){
-  if(Number(etat.data?.partie?.scenario_id)!==1||!window.ReglesAffaire01)return rendreAideReponseAvant(prog);
+  if(Number(etat.data?.partie?.scenario_id)!==1||!window.ReglesAffaire01){const ancienne=$('pl-aide-reponse');if(ancienne?.dataset.regles==='1')ancienne.remove();return rendreAideReponseAvant(prog);}
   const portes=prog?.portes,fin=portes?.phase==='fin',actif=prog?.active||(portes?{etape:5}:null);let aide=$('pl-aide-reponse');
   if(!actif||fin){if(aide)aide.hidden=true;return;}const guide=window.ReglesAffaire01.sceau(actif);if(!guide)return;
   if(!aide){aide=document.createElement('section');aide.id='pl-aide-reponse';$('pl-enonce').after(aide);}if(aide.dataset.regles!=='1'){aide.dataset.regles='1';aide.innerHTML='<p id="pl-aide-consigne"></p><details id="pl-aide-methode" open><summary>Comment résoudre ce sceau ?</summary><ol id="pl-aide-etapes"></ol></details><div class="pl-format-reponse"><strong id="pl-format-titre"></strong><code id="pl-format-texte"></code><p id="pl-format-note"></p></div><details><summary>Un exemple de raisonnement</summary><p id="pl-aide-exemple"></p></details><details><summary>Partager, mentir et contester : les règles communes</summary><p id="pl-aide-commun"></p></details>';}
