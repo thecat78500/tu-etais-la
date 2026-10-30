@@ -453,6 +453,13 @@
    image.alt='Illustration d’ambiance de l’affaire';$('pl-trace').textContent=affaire?.intro||'';
   }
  }
+ function texteChronologieClaire(mode='chronologie'){
+ const base='Reconstituez la nuit de Sally : classez les cinq événements, du premier au dernier.\n\nChacun demande sa preuve dans sa conversation Telegram avec Sally. Faites ensuite un tour de table : annoncez la référence de votre preuve, puis racontez ce qu’elle contient.\n\nRéunissez les morceaux portant la même référence. Un joueur peut avoir l’événement, un autre son heure : ces deux morceaux vont ensemble. Votre fragment seul peut donc être incomplet. Comparez les heures reconstituées avec le message daté sur l’iPad, puis complétez la chronologie avec le récit de Sally.\n\n« MESSAGE » désigne le texte daté affiché sur l’iPad. « APPEL » désigne le vocal privé de Sally, découpé entre les joueurs sur Telegram. Dans cet appel, elle raconte ce qui lui est déjà arrivé : distinguez le moment où elle vous parle des événements qu’elle raconte.\n\nÀ classer : APPEL ; PANNEAU DÉPLACÉ ; PORTE REFERMÉE ; ENTRÉE ; MESSAGE.';
+ if(mode==='heures')return base+'\n\nPour authentifier cette chronologie, retrouvez aussi les heures réelles de l’entrée et de la fermeture. L’horloge de la caméra est déréglée : rassemblez l’écart mesuré et le message qui précise si elle avance ou retarde, puis corrigez les deux heures.\n\nUne personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules, puis « ; heures : HH:MM:SS, HH:MM:SS » pour l’entrée et la fermeture.';
+ if(mode==='duree')return base+'\n\nPour authentifier cette chronologie, retrouvez aussi la durée entre l’entrée de Sally et la réouverture de la réserve par le groupe. Corrigez l’heure de la caméra grâce à vos autres preuves ; l’heure du téléphone est l’heure réelle.\n\nUne personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules, puis « ; durée : … min … s ».';
+ return base+'\n\nUne fois l’ordre trouvé ensemble, une personne écrit à Sally dans Telegram « je propose », suivi des cinq événements dans l’ordre, séparés par des virgules.';
+}
+ function modeChronologieClaire(actif){return actif.enonce.includes("authentifier cette chronologie")?(/durée|duree/.test(actif.enonce)?"duree":"heures"):"chronologie"}
  const EVENEMENTS_RESERVE = ['Appel', 'Panneau déplacé', 'Porte refermée', 'Entrée', 'Message'];
  function supportReserve(data){
   const actif=data?.progression?.active, support=actif?.support_public;
@@ -475,7 +482,7 @@
   }
   const liee=data.progression.active.enonce.includes('authentifier cette chronologie');
   const horloge=liee||['L’heure véritable','Le temps derrière la porte'].includes(data.progression.active.titre);
-  $('pl-enonce').textContent=horloge?data.progression.active.enonce:"Reconstituez précisément ce qui est arrivé à Sally et dans l'ordre précis. Chaque joueur possède un indice. Racontez ce que chaque preuve vous apprend. Une fois l’ordre trouvé, une personne écrit dans Telegram « je propose » suivi des cinq événements dans l'ordre, séparés par des virgules.";
+  $('pl-enonce').textContent=horloge&&!liee?data.progression.active.enonce:texteChronologieClaire(modeChronologieClaire(data.progression.active));
   if(!bloc){
    bloc=document.createElement('section');bloc.id='pl-preuves-reserve';bloc.setAttribute('aria-label','Les traces communes');
    bloc.innerHTML='<article class="pl-message-sally" aria-label="Message de Sally"><header><strong>Sally</strong><time></time></header><p></p></article><button id="pl-photo-ouvrir" type="button" aria-haspopup="dialog">Examiner la photo de la réserve</button><h3>À classer du premier au dernier</h3><ul class="pl-evenements-reserve">'+EVENEMENTS_RESERVE.map(e=>'<li>'+e+'</li>').join('')+'</ul><p class="pl-reponse-reserve"><strong>Message</strong> désigne le texte de Sally affiché ici. <strong>Entrée</strong> désigne son entrée dans la réserve. <strong>Appel</strong> désigne le vocal privé reçu dans Telegram, pas l’appel d’introduction sur l’iPad.</p><p class="pl-reponse-reserve">Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.</p>';
@@ -489,7 +496,7 @@
   bloc.hidden=false;
   bloc.querySelector('h3').hidden=horloge&&!liee;
   bloc.querySelector('.pl-evenements-reserve').hidden=horloge&&!liee;
-  bloc.querySelector('.pl-reponse-reserve').hidden=horloge;
+  bloc.querySelectorAll('.pl-reponse-reserve').forEach(p=>p.hidden=true);
   bloc.querySelectorAll('.pl-reponse-reserve')[1].textContent=horloge?'Comparez les références : les morceaux d’un même document ou message se complètent. Les heures du relevé caméra doivent être corrigées grâce aux autres fragments.':'Certains indices sont fragmentés. Comparez les références de vos preuves : les morceaux portant la même référence se complètent. Les extraits vocaux de cette énigme proviennent tous du même appel de Sally. Racontez le contenu de votre morceau pour reconstruire l’ensemble.';
   let archive=$('pl-appel-retrouve');
   if(liee&&!archive){archive=document.createElement('article');archive.id='pl-appel-retrouve';archive.className='pl-archive-retour';archive.innerHTML='<p class="pl-archive-cote">LA RÉSERVE · ENREGISTREMENT RETROUVÉ</p><h3>Ce qui s’est passé derrière le panneau</h3><p>Écoutez ensemble cette trace de Sally pour reconstituer les événements. Vos fragments Telegram permettront ensuite d’en authentifier les horaires.</p><audio controls preload="none" src="assets/preuves/affaire-01/appel-sally.mp3" aria-label="Appel retrouvé de Sally"></audio><p>Cette archive correspond à l’événement « Appel ». L’introduction de l’iPad présente l’enquête.</p>';bloc.append(archive);const lecteur=archive.querySelector('audio');lecteur.addEventListener('play',()=>{if(etat.appel || etat.sonnerie){lecteur.pause();return;}arreterVoix();regler();});for(const evenement of ['pause','ended','error'])lecteur.addEventListener(evenement,regler);regler();}
@@ -817,7 +824,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 27 : scènes préchargées, retour en haut et réglages du boîtier.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 28 : fragments à réunir et chronologie de Sally expliquée.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
