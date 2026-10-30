@@ -419,14 +419,34 @@
   const etape=prog.portes?5:Number(prog.active?.etape||(Number(prog.resolues)>=5?5:0));
   return SCENES_RESERVE[etape]?{...SCENES_RESERVE[etape],id:'sceau-'+etape}:null;
  }
+ function chargerScene(image,scene){
+  if(image.dataset.sceneDemandee===scene.src)return;
+  image.dataset.sceneDemandee=scene.src;
+  const apercu=new Image();apercu.decoding='async';apercu.fetchPriority='high';
+  apercu.onload=async()=>{
+   try{await apercu.decode()}catch{}
+   if(image.dataset.sceneDemandee!==scene.src)return;
+   image.src=scene.src;image.alt=scene.alt;image.dataset.sceneRendue=scene.id;
+   delete image.dataset.sceneErreur;
+  };
+  apercu.onerror=()=>{if(image.dataset.sceneDemandee===scene.src)image.dataset.sceneErreur=scene.id};
+  // Conserver la scène précédente pendant le chargement évite une grande zone vide.
+  apercu.src=scene.src;
+ }
  function rendreScene(data,affaire){
   const scene=sceneReserve(data),image=$('pl-image'),vue=$('pl-vue');
+  const precedente=$('plateau').dataset.scene;
   $('plateau').classList.toggle('pl-scenes',!!scene);
   if(scene){
    $('plateau').dataset.scene=scene.id;
-   if(image.getAttribute('src')!==scene.src)image.src=scene.src;
+   chargerScene(image,scene);
    image.alt=scene.alt;vue.hidden=false;$('pl-trace').textContent=scene.texte;
+   if(precedente!==scene.id)requestAnimationFrame(()=>{
+    if($('plateau').dataset.scene!==scene.id)return;
+    for(const bloc of document.querySelectorAll('#plateau .pl-centre,#plateau .pl-sceau'))bloc.scrollTop=0;
+   });
   }else{
+   image.dataset.sceneDemandee='';
    delete $('plateau').dataset.scene;
    vue.hidden=!affaire?.image;
    if(affaire?.image&&image.getAttribute('src')!==affaire.image)image.src=affaire.image;
@@ -593,7 +613,7 @@
   let bloc=$('pl-dossier-retour');const actif=prog?.portes?.registre_lie&&prog.portes.phase!=='fin';
   if(!actif){if(bloc)bloc.hidden=true;return;}
   if(!bloc){bloc=document.createElement('section');bloc.id='pl-dossier-retour';bloc.className='pl-archive-retour';bloc.setAttribute('aria-label','Repères pour lire les archives privées');$('pl-portes-consigne').after(bloc);}
-  const lire=n=>(prog.carnet||[]).find(e=>Number(e.etape)===n)?.reponse||'',chemin=lire(3).split(/\s*→\s*/),gestes=lire(4).split(/\s*→\s*/);
+  const lire=n=>(prog.carnet||[]).find(e=>Number(e.etape)===n)?.reponse||'',chemin=lire(3).split(/\s*→\s*/),gestes=lire(4).split(/\s*;\s*/)[0].split(/\s*→\s*/);
   const valeurs=[['II · Nom du seuil',lire(2).split(' : ')[0]],['III · Dernier lieu avant la Galerie',chemin.at(-2)],['IV · Geste juste avant l’attente',gestes.at(-2)]];
   bloc.hidden=false;bloc.innerHTML='<p class="pl-archive-cote">VOS DÉCOUVERTES SERVENT MAINTENANT</p><div class="pl-reperes-retour"></div><p>Choisissez la ligne correspondante dans vos tableaux Telegram. Elle donne une porte à écarter ; confrontez ensuite vos déductions.</p>';
   const liste=bloc.querySelector('.pl-reperes-retour');for(const [titre,valeur] of valeurs){const carte=document.createElement('article'),t=document.createElement('small'),v=document.createElement('strong');t.textContent=titre;v.textContent=valeur||'Consultez le carnet commun';carte.append(t,v);liste.append(carte);}
@@ -638,7 +658,11 @@
    const restant=Math.max(0,Math.ceil((portes.jusqu-Date.now())/1000));
    $('pl-portes-phase').textContent=labels[portes.phase]+(vote?` — ${portes.votants}/${portes.total} ont voté`:['debat','debat_egalite'].includes(portes.phase)?` — ${portes.prets}/${portes.total} prêts`:'')+(portes.jusqu&&!fin?` — ${Math.floor(restant/60)}:${String(restant%60).padStart(2,'0')}`:'');
    const signes={Lune:'☾',Cendre:'⋰',Ronce:'♧',Verre:'◇',Seuil:'⊓'};
-   $('pl-portes-liste').innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span class="pl-porte-visuel" aria-hidden="true"><span class="pl-porte-repli">${signes[s]||''}</span><img src="assets/portes/porte-${encodeURIComponent(s.toLowerCase())}.png" alt="" width="1024" height="1536" decoding="async"></span><strong>${echapper(s)}</strong></li>`).join('');
+   const listePortes=$('pl-portes-liste'),vuePortes=JSON.stringify([portes.symboles,portes.candidats,!!fin,fin?portes.resultat.porte:null]);
+   if(listePortes.dataset.vue!==vuePortes){
+    listePortes.dataset.vue=vuePortes;
+    listePortes.innerHTML=portes.symboles.map(s=>`<li class="${fin&&portes.resultat.porte===s?'choisie':''} ${!portes.candidats.includes(s)&&!fin?'hors-vote':''}"><span class="pl-porte-visuel" aria-hidden="true"><span class="pl-porte-repli">${signes[s]||''}</span><img src="assets/portes/porte-${encodeURIComponent(s.toLowerCase())}.png" alt="" width="1024" height="1536" decoding="async"></span><strong>${echapper(s)}</strong></li>`).join('');
+   }
    $('pl-portes-consigne').textContent=fin?`Porte choisie : ${portes.resultat.porte}.`:vote?'Chacun écrit dans Telegram « je vote la porte de… », avec le nom de son choix.':'Comparez vos exclusions à voix haute. Chacun écrit ensuite « prêt à voter » dans Telegram.';
    $('pl-portes-fin').hidden=!fin;
    $('pl-portes-revelation').innerHTML=fin?(portes.revelation||[]).map(j=>`<li data-victoire="${j.victoire===true?'oui':'non'}"><strong>${echapper(j.prenom)}</strong> — ${echapper(j.role)}, ${echapper(j.camp==='mechant'?'méchant':j.camp)}${j.objectif?' ; objectif : '+echapper(j.objectif):''}<b>${j.victoire?'Victoire':'Défaite'}</b></li>`).join(''):'';
@@ -793,7 +817,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 25 : boîtier photographique, schéma des pièces et écoute équilibrée.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 27 : scènes préchargées, retour en haut et réglages du boîtier.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
