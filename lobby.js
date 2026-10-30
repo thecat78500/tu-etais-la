@@ -46,7 +46,7 @@ document.querySelector('#elise-portrait').addEventListener('click',()=>{
  document.querySelector('#detail').showModal();
 });
 document.querySelector('#reserve-preview').addEventListener('click',()=>{
- document.querySelector('#detail-content').innerHTML='<span class="tiny">AFFAIRE 01 / APERÇU DE LA RÉSERVE</span><h2>La porte qu’on n’a pas ouverte</h2><img class="evidence-photo" src="assets/affaire-01-reserve.png" alt="Une porte fermée vue depuis la réserve et une chaise renversée"><a class="original-photo" href="assets/affaire-01-reserve.png" target="_blank" rel="noopener">Ouvrir l’image originale pour zoomer ↗</a><p>Une chaise renversée. Une lumière sous la porte. Cette photographie appartient au premier scénario ; elle ne permet pas, à elle seule, de déterminer ce qui s’est passé.</p>';
+ document.querySelector('#detail-content').innerHTML='<span class="tiny">AFFAIRE 01 / APERÇU DE LA RÉSERVE</span><h2>La porte qu’on n’a pas ouverte</h2><img class="evidence-photo" src="assets/preuves/affaire-01/reserve-porte-video-v2.png" alt="La porte cachée à anneau de laiton au fond de la réserve, avec le panneau écarté"><a class="original-photo" href="assets/preuves/affaire-01/reserve-porte-video-v2.png" target="_blank" rel="noopener">Ouvrir l’image originale pour zoomer ↗</a><p>Un panneau écarté. Une porte dissimulée au fond de la réserve. Cette photographie appartient au premier scénario ; elle ne permet pas, à elle seule, de déterminer ce qui s’est passé.</p>';
  document.querySelector('#detail').showModal();
 });
 document.querySelector('#depart-preview').addEventListener('click',()=>{

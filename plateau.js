@@ -398,16 +398,16 @@
  const SCENES_RESERVE = {
   1:{src:PHOTO_RESERVE,alt:'La réserve vide, le panneau déplacé et le renfoncement maçonné.',texte:'La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.'},
   2:{src:PHOTO_RESERVE,alt:'La porte cachée aux planches anciennes et à l’anneau de laiton, derrière le panneau écarté.',texte:'Au fond de la réserve, les traces du panneau apparaissent plus nettement.'},
-  3:{src:'assets/scenes/affaire-01/sceau-03-envers.png',alt:'La réserve dans l’envers, baignée de lumière froide et de brume.',texte:'Les mêmes murs, les mêmes objets. De l’autre côté, la maison ne semble plus tout à fait la même.'},
-  4:{src:'assets/scenes/affaire-01/sceau-04-protection.png',alt:'Un passage fermé dans l’envers, entouré d’une lumière ambrée.',texte:'Une lueur tient encore autour du passage. La maison garde sa frontière.'},
+  3:{src:'assets/scenes/affaire-01/sceau-03-envers-v2.png',alt:'La réserve dans l’envers, baignée de lumière froide et de brume.',texte:'Les mêmes murs, les mêmes objets. De l’autre côté, la maison ne semble plus tout à fait la même.'},
+  4:{src:'assets/scenes/affaire-01/sceau-04-protection-v2.png',alt:'Un passage fermé dans l’envers, entouré d’une lumière ambrée.',texte:'Une lueur tient encore autour du passage. La maison garde sa frontière.'},
   5:{src:'assets/scenes/affaire-01/sceau-05-portes.png',alt:'Cinq portes fermées, aux signes de Lune, Cendre, Ronce, Verre et Seuil.',texte:'Cinq portes attendent. Aucune image ne vous dira laquelle choisir.'}
  };
  const SCENES_CONCLUSION = {
-  1:{src:'assets/scenes/affaire-01/fin-01-sally.png',alt:'Sally revient dans la réserve, émue et soulagée, dans une lumière chaude.'},
-  2:{src:'assets/scenes/affaire-01/fin-02-entite.png',alt:'Une présence noire a franchi le seuil et envahit la réserve.'},
-  3:{src:'assets/scenes/affaire-01/fin-03-scellee.png',alt:'Le seuil reste fermé et barré. Une lumière froide subsiste de l’autre côté.'},
-  4:{src:'assets/scenes/affaire-01/fin-04-enfermes.png',alt:'Depuis l’intérieur de la maison, la dernière porte se referme sur un mince filet de lumière.'},
-  5:{src:'assets/scenes/affaire-01/fin-05-silence.png',alt:'Le passage a disparu dans un mur plein. La réserve est vide et silencieuse.'}
+  1:{src:'assets/preuves/affaire-01/videos-jeu/conclusion-sally-sauvee-poster.jpg',alt:'Sally revient dans la réserve, émue et soulagée, dans une lumière chaude.'},
+  2:{src:'assets/preuves/affaire-01/videos-jeu/conclusion-entite-passage-poster.jpg',alt:'Une présence noire a franchi le seuil et envahit la réserve.'},
+  3:{src:'assets/scenes/affaire-01/fin-03-scellee-v2.png',alt:'Le seuil reste fermé et barré. Une lumière froide subsiste de l’autre côté.'},
+  4:{src:'assets/scenes/affaire-01/fin-04-enfermes-v2.png',alt:'Depuis l’intérieur de la maison, la dernière porte se referme sur un mince filet de lumière.'},
+  5:{src:'assets/scenes/affaire-01/fin-05-silence-v2.png',alt:'Le passage a disparu dans un mur plein. La réserve est vide et silencieuse.'}
  };
  function sceneReserve(data){
   const prog=data?.progression;
@@ -825,7 +825,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 31 : scènes vidéo de découverte et conclusions.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 32 : porte et réserve raccordées dans toutes les scènes.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
