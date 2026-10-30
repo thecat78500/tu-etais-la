@@ -392,12 +392,12 @@
  function echapper(t){ return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
  // Preuves publiques de la nouvelle chronologie : activation explicite par le serveur.
  // Ni le relevé du couloir, ni l'appel privé, ni la solution ne figurent ici.
- const PHOTO_RESERVE = 'assets/preuves/affaire-01/reserve-vide.png';
+ const PHOTO_RESERVE = 'assets/preuves/affaire-01/reserve-porte-video-v2.png';
  // Scènes fixes : seule l'étape publique ou l'issue révélée choisit l'image.
  // Elles ne contiennent ni répartition privée ni indication de la bonne porte.
  const SCENES_RESERVE = {
   1:{src:PHOTO_RESERVE,alt:'La réserve vide, le panneau déplacé et le renfoncement maçonné.',texte:'La porte ordinaire a été ouverte. Sally n’était plus dans la réserve.'},
-  2:{src:'assets/scenes/affaire-01/sceau-02-passage.png',alt:'Vue rapprochée du renfoncement et du panneau écarté, dans la même réserve.',texte:'Au fond de la réserve, les traces du panneau apparaissent plus nettement.'},
+  2:{src:PHOTO_RESERVE,alt:'La porte cachée aux planches anciennes et à l’anneau de laiton, derrière le panneau écarté.',texte:'Au fond de la réserve, les traces du panneau apparaissent plus nettement.'},
   3:{src:'assets/scenes/affaire-01/sceau-03-envers.png',alt:'La réserve dans l’envers, baignée de lumière froide et de brume.',texte:'Les mêmes murs, les mêmes objets. De l’autre côté, la maison ne semble plus tout à fait la même.'},
   4:{src:'assets/scenes/affaire-01/sceau-04-protection.png',alt:'Un passage fermé dans l’envers, entouré d’une lumière ambrée.',texte:'Une lueur tient encore autour du passage. La maison garde sa frontière.'},
   5:{src:'assets/scenes/affaire-01/sceau-05-portes.png',alt:'Cinq portes fermées, aux signes de Lune, Cendre, Ronce, Verre et Seuil.',texte:'Cinq portes attendent. Aucune image ne vous dira laquelle choisir.'}
@@ -824,7 +824,7 @@
  $('pl-volume').addEventListener('input', e => { etat.volume = Number(e.target.value); try { localStorage.setItem('tu-etais-la-volume', String(etat.volume)); } catch {} regler(); });
  // Repère pour vérifier quelle version du plateau est chargée sur l'iPad (utile si le navigateur garde un ancien fichier).
  $('pl-musique-niveau').addEventListener('input', e => { etat.musiqueNiveau = Number(e.target.value); try { localStorage.setItem('tu-etais-la-musique-niveau', String(etat.musiqueNiveau)); } catch {} regler(); });
- if($('pl-version')) $('pl-version').textContent = 'Plateau version 29 : documents sans codes visibles.';
+ if($('pl-version')) $('pl-version').textContent = 'Plateau version 30 : porte cachée cohérente avec la vidéo.';
  $('pl-annonce-fermer').addEventListener('click', masquerAnnonce);
  window.Plateau = {deverrouiller, ouvrir, fermer, mettreAJour, jouer, decrocher, annonces: recevoirAnnonces,
   delais: ms => { etat.delaiSonnerie = ms; },
