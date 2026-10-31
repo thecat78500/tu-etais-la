@@ -1,6 +1,6 @@
 'use strict';
 (()=>{const $=id=>document.getElementById(id),ADMIN='https://serteksa.ddns.net/webhook/tu-etais-la/organisateur',ECRAN='https://serteksa.ddns.net/webhook/tu-etais-la/ecran',stock='tu-etais-la-organisateur-v1';let cle='',association=null,data=null,busy=false,timer,ctx,bus,busEffets,effets=true,bruitTimer,filtreFond,ambiance=false,ring,queue=[],joue=false,nonce=0,sonScene='',videosEtat={};const phases={accueil:'Inscription des joueurs',discussion:'Écoutez, recevez vos indices et discutez',choix:'Décisions secrètes',resultat:'La maison réagit',fin:'Dénouement'};
-const media=u=>u?.startsWith('/')?new URL('.'+u,document.baseURI).href:u;
+const media=u=>{u=u?.replace('/boitier-retour-photo-v1.png','/boitier-retour-photo-v1.jpg').replace('/audio/fin-porte-2.mp3','/audio/fin-porte-2.MP3');return u?.startsWith('/')?new URL('.'+u,document.baseURI).href:u;};
 const hex=()=>[...crypto.getRandomValues(new Uint8Array(32))].map(v=>v.toString(16).padStart(2,'0')).join('');
 const node=(t,tag='p')=>{const n=document.createElement(tag);n.textContent=t;return n;};
 function signal(t){$('connexion-etat').textContent=t;}
@@ -115,5 +115,6 @@ $('voix').addEventListener('ended',lireSuite);$('voix').addEventListener('error'
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(cle||association))requete();});window.addEventListener('pagehide',()=>{clearTimeout(timer);clearTimeout(bruitTimer);fermerAppel();musiqueOriginale?.pause();ctx?.close();});
 try{const h=new URLSearchParams(location.hash.slice(1));if(h.has('partie')&&h.has('cle')){association={partie:h.get('partie'),cle:h.get('cle')};sessionStorage.setItem('sally-ecran-narratif',JSON.stringify(association));history.replaceState(null,'',location.pathname);requete();}else{const a=JSON.parse(sessionStorage.getItem('sally-ecran-narratif')||'null'),c=JSON.parse(localStorage.getItem(stock)||'null');if(c?.version===1&&typeof c.cle==='string'){cle=c.cle;$('cle-admin').value=cle;$('memoriser').checked=true;requete();}else if(a){association=a;requete();}}}catch{}
 })();
+
 
 
