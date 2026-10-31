@@ -17,23 +17,102 @@ function rendre(){const p=data.jeu,partie=data.partie;$('acces').hidden=!!(cle||
  const sonCle=partie.code+':'+p.acte+':'+p.phase;if(sonScene!==sonCle){sonScene=sonCle;niveaux();programmerBruit();}if(p.phase==='resultat'&&!Object.hasOwn(videosEtat,stamp)){videosEtat[stamp]=false;const nom=/gratte|poussée|fissure/.test(p.resultat?.texte||'')?'A01_PORTE_VIBRE.mp4':'A01_VERROU_TIENT.mp4';const u='/assets/preuves/affaire-01/narratif-v1/'+nom;disponible(u).then(ok=>{if(ok){videosEtat[stamp]=u;if(data?.partie?.code+':'+data?.jeu?.acte+':'+data?.jeu?.phase===stamp){$('archive').hidden=false;$('video').src=media(u);$('video-titre').textContent='La porte maintenant';}}});}const id=partie.code+':'+p.acte+':'+(p.fin?'fin':'scene');if($('appel').dataset.scene!==id){$('appel').dataset.scene=id;$('appel').textContent=p.fin?'Recevoir / réécouter la conclusion':'Recevoir / réécouter l’appel';$('note-son').textContent='Appuie sur le bouton d’appel pour faire sonner la liaison de Sally. Les indices privés restent dans Telegram.';}
 }
 $('login').onsubmit=e=>{e.preventDefault();cle=$('cle-admin').value.trim();memoriser();requete();};$('associer').onsubmit=e=>{e.preventDefault();cle='';association={partie:$('code-ecran').value.trim().toUpperCase(),cle:$('cle-ecran').value.trim()};sessionStorage.setItem('sally-ecran-narratif',JSON.stringify(association));requete();};$('creer').onclick=()=>requete('creer',{nombre_joueurs:Number($('nombre').value),scenario_id:1,cle_ecran:hex(),graine_privee:hex()});for(const [id,action]of [['commencer','demarrer'],['ouvrir','ouvrir'],['clore','clore'],['suivant','suivant']])$(id).onclick=()=>{fermerAppel();$('video').pause();requete(action,{forcer:$('forcer').checked});};$('terminer').onclick=()=>{if(confirm('Terminer cette partie ? Les camps ne seront pas redistribués avant la prochaine partie.'))requete('fin');};$('pause').onclick=()=>requete(data.jeu.pause?'reprendre':'pause');$('forcer').onchange=()=>desactiver(false);$('deconnexion').onclick=()=>{cle='';association=null;data=null;localStorage.removeItem(stock);sessionStorage.removeItem('sally-ecran-narratif');$('regie').hidden=true;$('plateau-narratif').hidden=true;$('acces').hidden=false;clearTimeout(timer);fermerAppel();};$('copier').onclick=()=>navigator.clipboard.writeText(data.invitation).then(()=>$('retour').textContent='Lien d’inscription copié.').catch(()=>$('retour').textContent=data.invitation);$('copier-ecran').onclick=()=>{const lien=new URL('ecran.html',location.href);lien.hash=new URLSearchParams(data.ipad).toString();navigator.clipboard.writeText(lien.href).then(()=>$('retour').textContent='Lien du second écran copié. Il ne donne pas accès aux commandes organisateur.').catch(()=>$('retour').textContent=lien.href);};$('plein-ecran').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else $('plateau-narratif').requestFullscreen?.();};
-function contexte(){if(ctx)return ctx;ctx=new(window.AudioContext||window.webkitAudioContext)();bus=ctx.createGain();bus.gain.value=0;bus.connect(ctx.destination);busEffets=ctx.createGain();busEffets.connect(ctx.destination);filtreFond=ctx.createBiquadFilter();filtreFond.type='lowpass';filtreFond.frequency.value=280;filtreFond.connect(bus);
- [[44,'sine',.34],[66.15,'triangle',.09],[88.2,'sine',.05]].forEach(([hz,type,v])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=hz;g.gain.value=v;o.connect(g);g.connect(filtreFond);o.start();});const l=ctx.createOscillator(),lg=ctx.createGain();l.frequency.value=.055;lg.gain.value=95;l.connect(lg);lg.connect(filtreFond.frequency);l.start();
- const tampon=ctx.createBuffer(1,ctx.sampleRate*4,ctx.sampleRate),d=tampon.getChannelData(0);let x=0;for(let i=0;i<d.length;i++){x=(x+.02*(Math.random()*2-1))/1.02;d[i]=x*2;}const souffle=ctx.createBufferSource(),g=ctx.createGain();souffle.buffer=tampon;souffle.loop=true;g.gain.value=.13;souffle.connect(g);g.connect(bus);souffle.start();return ctx;}
-function programmerBruit(){clearTimeout(bruitTimer);if(!ctx||!effets||!ambiance||!data?.jeu||['accueil','fin'].includes(data.jeu.phase))return;bruitTimer=setTimeout(()=>{if(!joue&&!$('appel-dialog').open&&data?.jeu?.acte!==2){const c=ctx,o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter(),t=c.currentTime;o.type='sawtooth';o.frequency.setValueAtTime(71,t);o.frequency.linearRampToValueAtTime(49,t+1.2);f.type='bandpass';f.frequency.value=690;f.Q.value=4;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.045,t+.3);g.gain.exponentialRampToValueAtTime(.0001,t+1.6);o.connect(f);f.connect(g);g.connect(busEffets);o.start(t);o.stop(t+1.65);}programmerBruit();},25000+Math.random()*25000);}
+// Réemploi des sons du plateau.js existant : même drone et mêmes huit bruitages.
+const bruit={tampon:null};const buffersEffets={};let musiqueOriginale=null,musiqueActive=false,musiqueCherchee=false;
+function contexte(){if(ctx)return ctx;ctx=new(window.AudioContext||window.webkitAudioContext)();bus=ctx.createGain();bus.gain.value=0;bus.connect(ctx.destination);busEffets=ctx.createGain();busEffets.connect(ctx.destination);const etat={ctx,bus};
+const drone = {noeuds: null,
+  demarrer(){
+   if(this.noeuds || !etat.ctx) return;
+   const c = etat.ctx, sortie = c.createGain(); sortie.gain.value = 0; sortie.connect(etat.bus);
+   const filtre = c.createBiquadFilter(); filtre.type = 'lowpass'; filtre.frequency.value = 380; filtre.Q.value = 2; filtre.connect(sortie);
+   const sources = [];
+   [[55, 'sine', 0.5], [82.6, 'triangle', 0.22], [110.4, 'sine', 0.1]].forEach(([freq, type, niveau]) => {
+    const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = freq; g.gain.value = niveau; o.connect(g); g.connect(filtre); sources.push(o); });
+   const lfo = c.createOscillator(), lfoGain = c.createGain(); lfo.frequency.value = 0.07; lfoGain.gain.value = 140; lfo.connect(lfoGain); lfoGain.connect(filtre.frequency); sources.push(lfo);
+   const tampon = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), donnees = tampon.getChannelData(0); let lisse = 0;
+   for(let i = 0; i < donnees.length; i++){ lisse = (lisse + 0.02 * (Math.random() * 2 - 1)) / 1.02; donnees[i] = lisse * 3.5; }
+   const bruit = c.createBufferSource(); bruit.buffer = tampon; bruit.loop = true;
+   const bande = c.createBiquadFilter(); bande.type = 'bandpass'; bande.frequency.value = 500; bande.Q.value = 0.6;
+   const souffle = c.createGain(); souffle.gain.value = 0.3;
+   const lfo2 = c.createOscillator(), lfo2Gain = c.createGain(); lfo2.frequency.value = 0.11; lfo2Gain.gain.value = 0.2; lfo2.connect(lfo2Gain); lfo2Gain.connect(souffle.gain);
+   bruit.connect(bande); bande.connect(souffle); souffle.connect(sortie); sources.push(bruit, lfo2);
+   sources.forEach(s => s.start());
+   sortie.gain.setTargetAtTime(0.55, c.currentTime, 2.5);
+   this.noeuds = {sortie, sources};
+  },
+  arreter(){
+   if(!this.noeuds) return;
+   const {sortie, sources} = this.noeuds; this.noeuds = null;
+   try { sortie.gain.setTargetAtTime(0, etat.ctx.currentTime, 0.5); } catch {}
+   setTimeout(() => sources.forEach(s => { try { s.stop(); } catch {} }), 2500);
+  }};
+drone.demarrer();return ctx;}
+function tamponBruit(){
+  if(bruit.tampon) return bruit.tampon;
+  const c = ctx, n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  return bruit.tampon = b;
+ }
+ function sortieEffets(){return busEffets;}
+ const enveloppe = (g, t, attaque, duree, niveau) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(niveau, t + attaque); g.gain.exponentialRampToValueAtTime(0.0001, t + duree); };
+ function coup(t, freq, niveau, duree = 0.28){
+  const c = ctx, s = sortieEffets(), o = c.createOscillator(), g = c.createGain();
+  o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.45, t + duree); o.connect(g); g.connect(s); enveloppe(g, t, 0.008, duree, niveau); o.start(t); o.stop(t + duree + 0.05);
+  const n = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain(); n.buffer = tamponBruit(); f.type = 'lowpass'; f.frequency.value = 300;
+  n.connect(f); f.connect(gn); gn.connect(s); enveloppe(gn, t, 0.004, 0.12, niveau * 0.6); n.start(t, Math.random(), 0.2);
+ }
+ function grincement(t, debut, fin, duree, niveau){
+  const c = ctx, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(debut, t); o.frequency.linearRampToValueAtTime(fin, t + duree * 0.5); o.frequency.linearRampToValueAtTime(debut * 1.1, t + duree);
+  f.type = 'bandpass'; f.frequency.setValueAtTime(500, t); f.frequency.linearRampToValueAtTime(1100, t + duree); f.Q.value = 6;
+  o.connect(f); f.connect(g); g.connect(sortieEffets()); enveloppe(g, t, duree * 0.2, duree, niveau); o.start(t); o.stop(t + duree + 0.05);
+ }
+ function souffleBref(t, duree, freq, niveau, q = 0.8){
+  const c = ctx, n = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  n.buffer = tamponBruit(); n.loop = true; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  n.connect(f); f.connect(g); g.connect(sortieEffets()); enveloppe(g, t, duree * 0.4, duree, niveau); n.start(t, Math.random()); n.stop(t + duree + 0.05);
+ }
+ function cloche(t){
+  const c = ctx;
+  [[392, 0.1, 4.2], [392 * 2.76, 0.04, 2.6], [392 * 5.4, 0.02, 1.6]].forEach(([freq, niveau, duree]) => {
+   const o = c.createOscillator(), g = c.createGain(); o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t, 0.01, duree, niveau); o.start(t); o.stop(t + duree + 0.05); });
+ }
+ const SYNTHESE = {
+  craquement: t => { grincement(t, 95, 62, 1.1, 0.2); },
+  coups: t => { coup(t, 85, 0.5); coup(t + 0.42, 80, 0.45); if(Math.random() < 0.5) coup(t + 1.1, 90, 0.4); },
+  pas: t => { for(let i = 0; i < 6; i++) coup(t + i * 0.62, i % 2 ? 52 : 62, 0.17, 0.18); },
+  vent: t => { souffleBref(t, 3.6, 420, 0.32); },
+  murmure: t => { for(let i = 0; i < 6; i++) souffleBref(t + i * 0.33, 0.28, 1700 + Math.random() * 800, 0.05, 5); },
+  horloge: t => { for(let i = 0; i < 8; i++) souffleBref(t + i * 0.5, 0.04, 3500, 0.14, 8); },
+  porte: t => { grincement(t, 230, 150, 1.6, 0.13); coup(t + 1.5, 70, 0.3); },
+  cloche: t => cloche(t),
+  // Sceau ouvert : un verrou qui claque, puis une grave résonance.
+  'sceau-ouvert': t => { coup(t, 110, 0.6, 0.3); const c = ctx, o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 1800; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + 0.1, 0.002, 0.03, 0.12); o.start(t + 0.1); o.stop(t + 0.16);
+   [[73.4, 0.16, 2.4], [110, 0.08, 1.9]].forEach(([freq, niveau, duree]) => { const p = c.createOscillator(), q = c.createGain(); p.frequency.value = freq; p.connect(q); q.connect(sortieEffets()); enveloppe(q, t + 0.2, 0.3, duree, niveau); p.start(t + 0.2); p.stop(t + 0.2 + duree + 0.05); }); },
+  // Indice découvert : deux notes claires qui montent, comme un éclat de verre.
+  'indice-decouvert': t => { const c = ctx; [[659.3, 0], [987.8, 0.16]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.01, 1.5, 0.13); o.start(t + decalage); o.stop(t + decalage + 1.55); }); },
+  // Pouvoir révélé à la table : trois notes qui s'étirent, comme une présence qui se manifeste.
+  // L'entité s'approche : deux coups sourds, un grincement lent, un souffle froid.
+  approche: t => { coup(t, 70, 0.5, 0.28); coup(t + 0.55, 64, 0.55, 0.3); grincement(t + 1, 120, 70, 1.5, 0.12); souffleBref(t, 2.4, 320, 0.12, 2); },
+  gravure: t => { grincement(t, 600, 250, 1.1, 0.1); souffleBref(t, 1.4, 1100, 0.06, 2); },
+  pouvoir: t => { const c = ctx; [[293.7, 0], [440, 0.22], [587.3, 0.44]].forEach(([freq, decalage]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = freq; o.connect(g); g.connect(sortieEffets()); enveloppe(g, t + decalage, 0.05, 2.2, 0.12); o.start(t + decalage); o.stop(t + decalage + 2.3); }); souffleBref(t, 2.4, 900, 0.1, 2); }
+ };
+async function effetExistant(id){if(!ctx||!effets)return;let b=buffersEffets[id];if(b===undefined){b=null;for(const ext of ['wav','mp3','m4a','ogg']){try{const r=await fetch(media('/assets/audio/effets/'+id+'.'+ext),{cache:'no-store'});if(r.ok&&/audio|octet|mpeg|ogg|wav|wave/.test(r.headers.get('content-type')||'')){b=await ctx.decodeAudioData(await r.arrayBuffer());break;}}catch{}}buffersEffets[id]=b;}if(!effets||joue||$('appel-dialog').open||data?.jeu?.acte===2)return;if(b){const source=ctx.createBufferSource();source.buffer=b;source.connect(busEffets);source.start();}else SYNTHESE[id]?.(ctx.currentTime);}
+async function retrouverMusique(){if(musiqueCherchee)return;musiqueCherchee=true;for(const fichier of ['ambiance.mp3','ambiance.wav']){try{const url=media('/assets/audio/'+fichier),r=await fetch(url,{method:'HEAD',cache:'no-store'});if(!r.ok)continue;musiqueOriginale=new Audio(url);musiqueOriginale.loop=true;musiqueOriginale.preload='none';if(ambiance){await musiqueOriginale.play();musiqueActive=true;niveaux();}return;}catch{musiqueOriginale=null;musiqueActive=false;}}}
+function programmerBruit(){clearTimeout(bruitTimer);if(!ctx||!effets||!ambiance||!data?.jeu||['accueil','fin'].includes(data.jeu.phase))return;const a=data.jeu.acte,delais=a<2?[35000,75000]:a<4?[25000,55000]:[15000,40000];bruitTimer=setTimeout(()=>{if(!joue&&!$('appel-dialog').open&&data?.jeu?.acte!==2){const choix=['craquement','vent','pas','horloge','porte','cloche'];effetExistant(choix[Math.floor(Math.random()*choix.length)]);}programmerBruit();},delais[0]+Math.random()*(delais[1]-delais[0]));}
 
-function niveaux(){if(ctx){busEffets.gain.setTargetAtTime(effets?Number($('volume-effets').value)/100:0,ctx.currentTime,.15);filtreFond.frequency.setTargetAtTime(data?.jeu?.jauges.verrou<=1?190:280,ctx.currentTime,1);}if(ctx)bus.gain.setTargetAtTime(ambiance?Number($('volume-ambiance').value)/100*(joue||$('appel-dialog').open?.06:.3):0,ctx.currentTime,.3);$('voix').volume=Number($('volume-voix').value)/100;}
-$('ambiance').onclick=async()=>{await contexte().resume();ambiance=!ambiance;$('ambiance').textContent=ambiance?'Couper l’ambiance':'Réveiller l’ambiance';niveaux();programmerBruit();};$('volume-ambiance').oninput=memoVolumes;$('volume-voix').oninput=memoVolumes;$('volume-effets').oninput=memoVolumes;$('effets').onclick=async()=>{await contexte().resume();effets=!effets;$('effets').textContent=effets?'Bruitages activés':'Bruitages coupés';niveaux();programmerBruit();};
+function niveaux(){if(ctx){busEffets.gain.setTargetAtTime(effets?Number($('volume-effets').value)/100:0,ctx.currentTime,.15);}if(musiqueOriginale)musiqueOriginale.volume=ambiance?Number($('volume-ambiance').value)/100*(joue||$('appel-dialog').open?.06:.3):0;if(ctx)bus.gain.setTargetAtTime(ambiance&&!musiqueActive?Number($('volume-ambiance').value)/100*(joue||$('appel-dialog').open?.06:.3):0,ctx.currentTime,.3);$('voix').volume=Number($('volume-voix').value)/100;}
+$('ambiance').onclick=async()=>{await contexte().resume();ambiance=!ambiance;$('ambiance').textContent=ambiance?'Couper l’ambiance':'Réveiller l’ambiance';niveaux();programmerBruit();if(ambiance){retrouverMusique();if(musiqueOriginale)musiqueOriginale.play().then(()=>{musiqueActive=true;niveaux();}).catch(()=>{musiqueActive=false;niveaux();});}else musiqueOriginale?.pause();};$('volume-ambiance').oninput=memoVolumes;$('volume-voix').oninput=memoVolumes;$('volume-effets').oninput=memoVolumes;$('effets').onclick=async()=>{await contexte().resume();effets=!effets;$('effets').textContent=effets?'Bruitages activés':'Bruitages coupés';niveaux();programmerBruit();};
 function memoVolumes(){niveaux();try{localStorage.setItem('sally-mixage-v1',JSON.stringify(['volume-ambiance','volume-effets','volume-voix'].map(id=>Number($(id).value))));}catch{}}try{const v=JSON.parse(localStorage.getItem('sally-mixage-v1')||'null');if(Array.isArray(v))['volume-ambiance','volume-effets','volume-voix'].forEach((id,i)=>{if(Number.isFinite(v[i])&&v[i]>=0&&v[i]<=100)$(id).value=v[i];});}catch{}
 function pulse(freq,debut,duree,niveau,appel=false){const c=contexte(),o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(freq,debut);o.frequency.exponentialRampToValueAtTime(freq*.5,debut+duree);g.gain.setValueAtTime(.0001,debut);g.gain.exponentialRampToValueAtTime(Math.max(.0001,niveau*(appel?Number($('volume-voix').value)/100:1)),debut+.01);g.gain.exponentialRampToValueAtTime(.0001,debut+duree);o.connect(g);g.connect(appel?c.destination:busEffets);o.start(debut);o.stop(debut+duree+.02);}
-$('coups').onclick=async()=>{await contexte().resume();for(let i=0;i<data.jeu.scene.coups;i++)pulse(110,ctx.currentTime+i*.55,.24,.15);};
+$('coups').onclick=async()=>{await contexte().resume();for(let i=0;i<data.jeu.scene.coups;i++)coup(ctx.currentTime+i*.55,85,.5,.28);};
 function fermerAppel(){nonce++;clearInterval(ring);queue=[];joue=false;$('voix').pause();if($('appel-dialog').open)$('appel-dialog').close();niveaux();}
 $('appel').onclick=async()=>{if(!data?.jeu)return;await contexte().resume();$('video').pause();nonce++;$('voix').pause();$('voix').hidden=true;$('appel-phase').textContent='Appel entrant';$('appel-etat').textContent='La ligne sonne…';$('decrocher').disabled=false;$('appel-dialog').showModal();const sonner=()=>{pulse(440,ctx.currentTime,.2,.025,true);pulse(440,ctx.currentTime+.35,.2,.025,true);};clearInterval(ring);sonner();ring=setInterval(sonner,2300);niveaux();};
 async function disponible(url){try{const r=await fetch(media(url),{method:'HEAD',cache:'no-store',signal:AbortSignal.timeout(6000)});return r.ok;}catch{return false;}}
 async function lireSuite(){if(!queue.length){joue=false;$('appel-phase').textContent='Liaison terminée';$('appel-etat').textContent='Raccrochez puis consultez vos conversations Telegram.';niveaux();return;}const url=queue.shift();$('voix').src=media(url);$('voix').hidden=false;joue=true;$('appel-phase').textContent='Liaison en cours';niveaux();await $('voix').play().catch(()=>{$('appel-etat').textContent='Appuie sur Lecture pour continuer la liaison.';});}
 $('decrocher').onclick=async()=>{clearInterval(ring);const courant=nonce,p=data.jeu;$('decrocher').disabled=true;$('appel-etat').textContent='Connexion à la liaison…';queue=[];const principal=p.fin?.audio||p.appel?.url;if(principal&&await disponible(principal))queue.push(principal);else $('note-son').textContent='L’enregistrement de cet appel est encore à créer ou publier. Le déroulement reste indiqué à l’écran.';if(p.interruption?.url&&await disponible(p.interruption.url))queue.push(p.interruption.url);if(courant!==nonce)return;if(queue.length)await lireSuite();else{$('appel-phase').textContent='Enregistrement en préparation';$('appel-etat').textContent=p.fin?.texte||p.scene.texte;}};
 $('voix').addEventListener('ended',lireSuite);$('voix').addEventListener('error',()=>{$('appel-etat').textContent='La liaison est interrompue. Tu peux réessayer ou continuer avec les indications à l’écran.';joue=false;niveaux();});$('raccrocher').onclick=fermerAppel;$('appel-dialog').addEventListener('cancel',e=>{e.preventDefault();fermerAppel();});$('video').addEventListener('play',()=>{joue=true;niveaux();});$('video').addEventListener('pause',()=>{joue=false;niveaux();});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(cle||association))requete();});window.addEventListener('pagehide',()=>{clearTimeout(timer);clearTimeout(bruitTimer);fermerAppel();ctx?.close();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(cle||association))requete();});window.addEventListener('pagehide',()=>{clearTimeout(timer);clearTimeout(bruitTimer);fermerAppel();musiqueOriginale?.pause();ctx?.close();});
 try{const h=new URLSearchParams(location.hash.slice(1));if(h.has('partie')&&h.has('cle')){association={partie:h.get('partie'),cle:h.get('cle')};sessionStorage.setItem('sally-ecran-narratif',JSON.stringify(association));history.replaceState(null,'',location.pathname);requete();}else{const a=JSON.parse(sessionStorage.getItem('sally-ecran-narratif')||'null'),c=JSON.parse(localStorage.getItem(stock)||'null');if(c?.version===1&&typeof c.cle==='string'){cle=c.cle;$('cle-admin').value=cle;$('memoriser').checked=true;requete();}else if(a){association=a;requete();}}}catch{}
 })();
 
