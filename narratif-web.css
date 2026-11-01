@@ -71,6 +71,12 @@ body[data-phase=accueil] #regles-audio{display:flex;align-items:center;flex-wrap
 /* Champ d'identifiant invisible : permet au trousseau (iCloud, Chrome) de proposer le code en un geste */
 .identifiant-cache{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 
+/* Connexion de la régie */
+#login-erreur{min-height:1.4em;margin:10px 0 0;color:#e8a49a;font:14px/1.4 var(--etiquette)}
+#login .secours{margin-top:18px;padding-top:12px;border-top:1px solid var(--trait)}
+#login .secours summary{color:var(--papier-doux);cursor:pointer}
+#login .secours label{display:block;margin:10px 0}
+
 /* Lisibilité à distance de table */
 .trace-photo>span,.dock-original small,.plateau-marque small{font-size:12px}
 .sur-titre{font-size:12.5px}
