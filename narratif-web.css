@@ -9,3 +9,87 @@ body.partie-ouverte{overflow:hidden}.partie-ouverte .mast,.partie-ouverte #regie
 @media(max-width:1000px){.mast{padding:22px 26px}main{padding:0 26px}.scene{gap:22px}.scene h2{font-size:44px}#situation{font-size:20px}.dock-volume label{grid-template-columns:58px 1fr}.dock-original>button{padding:10px 14px}.dock-titre{font-size:20px}#phase{font-size:10px;max-width:30vw}.trace-photo p{font-size:15px}}
 @media(max-width:700px),(max-height:600px) and (max-width:1000px){.mast{padding:20px;align-items:flex-start}.marque{font-size:26px}#connexion-etat{font-size:10px;max-width:130px}main{padding:0 20px}#acces{padding:32px 0}form{display:grid;grid-template-columns:1fr;width:100%}form input{min-width:0;width:100%}.titre-regie{display:block}.titre-regie>div:last-child{margin-bottom:18px}#regie{padding:20px}.commandes button{flex:1}.commandes label{flex-basis:100%}#invitation{flex-direction:column;align-items:flex-start;padding:16px}#invitation>div:first-child{width:100%}.scene{grid-template-columns:1fr;grid-template-rows:minmax(120px,26dvh) minmax(0,1fr);gap:14px;padding:8px 16px 12px}.visuel>img{height:100%;object-fit:cover}.trace-photo{display:none}.scene article{padding-right:4px}.scene h2{font-size:36px}#situation{font-size:19px;line-height:1.45}.jauges{gap:12px}.jauges strong{font-size:9px}.jauges section>div span{font-size:12px}.jauges p{font-size:10px}#progression-evenements{gap:10px;margin:16px 0}#progression-evenements li{width:40px;font-size:16px}#plateau-narratif>header{padding:14px 16px 6px;gap:8px}.plateau-marque{font-size:25px}.plateau-marque small{font-size:9px}.plateau-commandes{gap:5px}#phase{font-size:9px;letter-spacing:0;max-width:140px}#phase::before{display:none}#ouvrir-regie{padding:0 10px;font-size:10px;min-height:42px}#plein-ecran{display:none}.dock-original{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 12px 10px}.dock-original>button{min-height:58px;padding:8px 10px}.dock-titre{font-size:18px}.dock-original small{font-size:8px}.dock-ambiance #ambiance{padding:7px 10px;min-height:40px}#effets{font-size:8px;padding:2px 10px 6px;min-height:18px}.dock-volume{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:5px 10px}.dock-volume label{display:flex;flex-direction:column;gap:0;align-items:stretch;font-size:8px}.dock-volume input{height:24px;min-height:24px}#note-son{font-size:9px;line-height:1.3}.regles h2{font-size:28px}.bas{flex-direction:column}.dossier-dialog{padding:14px}.dossier-dialog h2{font-size:25px}.dossier-dialog>header{gap:10px}.dossier-dialog button{padding:8px 12px}#resultat>p{font-size:18px}}
 @media(prefers-reduced-motion:no-preference){#progression-evenements .courant{animation:souffle 2.4s ease-in-out infinite}@keyframes souffle{50%{opacity:.7}}}
+
+/* === Peur : l'atmosphère suit la solidité du verrou (--peur de 0 à 1) et la proximité de Sally (--proche) === */
+:root{--peur:0;--proche:0;--sang:#9c2f24;--os:#cfe3dc}
+.visuel{position:relative;overflow:hidden}
+.cadre{position:relative;flex:1;min-height:0;overflow:hidden;background:#050607}
+.cadre img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 50%;filter:saturate(calc(.85 - var(--peur)*.5)) contrast(calc(1.05 + var(--peur)*.2)) brightness(calc(1 - var(--peur)*.3));transition:filter 2.6s ease}
+.cadre::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(70% 55% at 30% 22%,rgba(255,190,110,calc(.22*(1 - var(--peur)*.75))),transparent 70%)}
+.cadre::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(120% 95% at 50% 42%,transparent 30%,rgba(0,0,0,calc(.4 + var(--peur)*.45)) 100%),linear-gradient(0deg,rgba(60,90,95,calc(.12 + var(--peur)*.2)),transparent 45%),radial-gradient(90% 60% at 50% 105%,rgba(130,20,14,calc(var(--peur)*.38)),transparent 70%)}
+body[data-phase=accueil] #plateau-narratif .visuel{display:flex}
+body[data-phase=accueil] #plateau-narratif .trace-photo{display:none}
+body[data-phase=accueil] #plateau-narratif .scene{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+body[data-phase=accueil] .cadre{min-height:300px}
+
+/* Jauges : Sally est une présence froide qui s'approche, le verrou rougit en cédant */
+.jauges strong{font-size:13px}
+.jauges section>div span{font-size:16px}
+.jauges small{font-size:12px}
+.jauges p{font-size:13px}
+.jauges progress{height:10px}
+#jauge-sally::-webkit-progress-value{background:linear-gradient(90deg,#5d7e79,var(--os))}
+#jauge-sally::-moz-progress-bar{background:linear-gradient(90deg,#5d7e79,var(--os))}
+#jauge-sally{filter:drop-shadow(0 0 calc(2px + var(--proche)*9px) rgba(190,230,220,calc(.1 + var(--proche)*.55)))}
+#jauge-verrou::-webkit-progress-value{background:color-mix(in srgb,var(--sang) calc(var(--peur)*100%),var(--braise))}
+#jauge-verrou::-moz-progress-bar{background:color-mix(in srgb,var(--sang) calc(var(--peur)*100%),var(--braise))}
+#jauge-verrou.danger::-webkit-progress-value{background:var(--sang)}
+#jauge-verrou.danger::-moz-progress-bar{background:var(--sang)}
+body[data-peur=extreme] #verrou-label{color:#f0b4aa}
+
+/* Les cinq événements : le doré marque le moment présent, le passé s'éteint, l'avenir attend */
+#progression-evenements li{width:48px;font-size:19px}
+#progression-evenements .termine{background:radial-gradient(circle,rgba(224,164,90,.30),rgba(224,164,90,.08) 72%);border:2px solid rgba(224,164,90,.45);color:rgba(239,230,210,.55);box-shadow:inset 0 0 10px rgba(0,0,0,.6)}
+#progression-evenements .courant{border-color:var(--braise-vive);color:var(--braise-vive);background:radial-gradient(circle,rgba(242,194,122,.28),transparent 70%);box-shadow:0 0 22px rgba(242,194,122,.35)}
+#progression-evenements li:not(.termine):not(.courant){opacity:.55}
+
+/* Décision secrète : une flamme par joueur, allumée à chaque réponse reçue (jamais de nom) */
+#pastilles{display:flex;flex-wrap:wrap;gap:7px;margin:0 6px 0 0;align-items:center}
+#pastilles[hidden]{display:none}
+#pastilles i{display:block;width:11px;height:17px;border-radius:50% 50% 45% 45%/62% 62% 38% 38%;border:1px solid rgba(224,164,90,.4);background:rgba(224,164,90,.06);transition:background .6s,box-shadow .6s,border-color .6s}
+#pastilles i.allumee{background:radial-gradient(circle at 50% 72%,#ffe6b4,#e0a45a 55%,rgba(224,164,90,0) 100%);border-color:var(--braise-vive);box-shadow:0 0 14px rgba(242,194,122,.6)}
+
+/* Fin : la révélation passe devant, les masques tombent un à un */
+body[data-phase=fin] .scene article{display:flex;flex-direction:column}
+body[data-phase=fin] #revelation{order:2}
+body[data-phase=fin] .jauges,body[data-phase=fin] #coups-section{order:5}
+body[data-phase=fin] #options{order:6}
+body[data-phase=fin] #resultat{order:7}
+body[data-phase=fin] .roster{order:8}
+#revelation h3{font:400 clamp(26px,3vw,40px)/1.1 var(--titre);letter-spacing:.01em;margin:22px 0 8px;color:var(--papier)}
+#revelation p{font:21px/1.35 var(--titre);padding:10px 0 10px 16px;border-left:3px solid var(--trait);border-bottom:1px solid var(--trait)}
+#revelation .camp-sally{border-left-color:var(--braise-vive)}
+#revelation .camp-entite{border-left-color:var(--sang);color:#ecc3bb}
+#revelation .camp-independant{border-left-color:#7d8e93;color:#cfd8da}
+#revelation .perdu{opacity:.66}
+
+/* Règles lues par Sally : seulement à l'accueil */
+#regles-audio{display:none}
+body[data-phase=accueil] #regles-audio{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:6px 0 16px}
+#regles-note{font:13px/1.4 var(--etiquette);color:var(--papier-doux)}
+
+/* Lisibilité à distance de table */
+.trace-photo>span,.dock-original small,.plateau-marque small{font-size:12px}
+.sur-titre{font-size:12.5px}
+@media(max-width:700px),(max-height:600px) and (max-width:1000px){.jauges strong{font-size:11px}.jauges small{font-size:10px}.dock-original small{font-size:10px}.plateau-marque small{font-size:10px}}
+
+/* Mouvement : respiration, bougie, tressaillements, coupure entre deux événements */
+@media(prefers-reduced-motion:no-preference){
+ @keyframes respire{from{transform:scale(1)}to{transform:scale(1.045)}}
+ @keyframes bougie{0%{opacity:1}9%{opacity:.82}13%{opacity:.96}31%{opacity:.88}34%{opacity:1}52%{opacity:.78}55%{opacity:.94}71%{opacity:.86}78%{opacity:1}90%{opacity:.8}93%{opacity:.97}}
+ @keyframes tressaille{0%,90%,100%{translate:0 0}91%{translate:-3px 1px}92%{translate:2px -1px}93%{translate:-1px 0}94%{translate:0 0}}
+ @keyframes battement{0%,100%{opacity:1}12%{opacity:.5}24%{opacity:1}36%{opacity:.6}48%{opacity:1}}
+ @keyframes flamme{0%,100%{transform:scale(1,1)}50%{transform:scale(.92,1.08)}}
+ @keyframes coupure{0%{opacity:0}12%{opacity:0}18%{opacity:.75}22%{opacity:.1}30%{opacity:.9}36%{opacity:.35}48%{opacity:1}100%{opacity:1}}
+ @keyframes revele{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+ .cadre img{animation:respire 28s ease-in-out infinite alternate}
+ .cadre::before{animation:bougie 7s steps(1,end) infinite}
+ body[data-peur=forte] .cadre img{animation:respire 28s ease-in-out infinite alternate,tressaille 11s linear infinite}
+ body[data-peur=extreme] .cadre img{animation:respire 28s ease-in-out infinite alternate,tressaille 6.5s linear infinite}
+ #jauge-verrou.danger{animation:battement 1.8s linear infinite}
+ #pastilles i.allumee{animation:flamme 2.6s ease-in-out infinite}
+ #plateau-narratif.coupure .scene{animation:coupure 1.2s linear}
+ #revelation h3,#revelation p{animation:revele 1s ease both}
+ #revelation h3{animation-delay:.6s}
+ #revelation p:nth-child(2){animation-delay:1.4s}#revelation p:nth-child(3){animation-delay:2s}#revelation p:nth-child(4){animation-delay:2.6s}#revelation p:nth-child(5){animation-delay:3.2s}#revelation p:nth-child(6){animation-delay:3.8s}#revelation p:nth-child(7){animation-delay:4.4s}#revelation p:nth-child(8){animation-delay:5s}#revelation p:nth-child(9){animation-delay:5.6s}#revelation p:nth-child(10){animation-delay:6.2s}#revelation p:nth-child(11){animation-delay:6.8s}
+}
