@@ -68,6 +68,9 @@ body[data-phase=fin] .roster{order:8}
 body[data-phase=accueil] #regles-audio{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:6px 0 16px}
 #regles-note{font:13px/1.4 var(--etiquette);color:var(--papier-doux)}
 
+/* Champ d'identifiant invisible : permet au trousseau (iCloud, Chrome) de proposer le code en un geste */
+.identifiant-cache{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
 /* Lisibilité à distance de table */
 .trace-photo>span,.dock-original small,.plateau-marque small{font-size:12px}
 .sur-titre{font-size:12.5px}
