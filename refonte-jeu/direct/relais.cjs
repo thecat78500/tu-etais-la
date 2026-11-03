@@ -14,10 +14,10 @@ function creerRelais(config){
  function diffuser(p){for(const res of clients.get(p.code)||[])envoyer(res,'change',{revision:p.revision});}
  function programmer(p){
   clearTimeout(timers.get(p.code));timers.delete(p.code);
-  if(!p.eligible)return;
+  if(!p.eligible||!clients.get(p.code)?.size)return;
   const echeance=Math.max(maintenant()+1000,p.dernierVocal+delai);
   const t=setTimeout(async()=>{
-   timers.delete(p.code);const actuel=parties.get(p.code);if(!actuel?.eligible)return;
+   timers.delete(p.code);const actuel=parties.get(p.code);if(!actuel?.eligible||!clients.get(p.code)?.size)return;
    try{await config.murmure(p.code); // Le workflow republie sa directive, même s'il n'envoie rien.
     if(!timers.has(p.code)&&parties.get(p.code)?.eligible){actuel.dernierVocal=maintenant();sauver();programmer(actuel);}
    }catch{if(parties.get(p.code)?.eligible){actuel.dernierVocal=maintenant()-delai+15000;sauver();programmer(actuel);}}
@@ -54,7 +54,7 @@ function creerRelais(config){
     }
     const ensemble=clients.get(code)||new Set();if(ensemble.size>=20)return json(res,429,{ok:false});clients.set(code,ensemble);ensemble.add(res);
     res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.flushHeaders();envoyer(res,'ready',{revision:p.revision});
-    const battement=setInterval(()=>res.write(': liaison\n\n'),20000);battement.unref?.();res.on('close',()=>{clearInterval(battement);ensemble.delete(res);if(!ensemble.size)clients.delete(code);});return;
+    programmer(p);const battement=setInterval(()=>res.write(': liaison\n\n'),20000);battement.unref?.();res.on('close',()=>{clearInterval(battement);ensemble.delete(res);if(!ensemble.size){clients.delete(code);clearTimeout(timers.get(code));timers.delete(code);}});return;
    }
    return json(res,404,{ok:false});
   }catch{return json(res,400,{ok:false});}
