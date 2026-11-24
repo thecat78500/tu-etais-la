@@ -102,3 +102,8 @@ body[data-phase=accueil] #regles-audio{display:flex;align-items:center;flex-wrap
  #revelation h3{animation-delay:.6s}
  #revelation p:nth-child(2){animation-delay:1.4s}#revelation p:nth-child(3){animation-delay:2s}#revelation p:nth-child(4){animation-delay:2.6s}#revelation p:nth-child(5){animation-delay:3.2s}#revelation p:nth-child(6){animation-delay:3.8s}#revelation p:nth-child(7){animation-delay:4.4s}#revelation p:nth-child(8){animation-delay:5s}#revelation p:nth-child(9){animation-delay:5.6s}#revelation p:nth-child(10){animation-delay:6.2s}#revelation p:nth-child(11){animation-delay:6.8s}
 }
+
+/* Tactile : un appui long sur une commande ne sélectionne plus son texte ; étiquettes minuscules relevées pour la distance de table */
+button,summary,[role=button]{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.dock-volume label,#effets,.marque small{font-size:11px}
+.scene article{padding-bottom:max(24px,env(safe-area-inset-bottom))}
